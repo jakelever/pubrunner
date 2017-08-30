@@ -1,0 +1,34 @@
+sudo: required
+language: python
+
+matrix:
+  include:
+    - os: linux
+      sudo: required
+      python: 2.7
+      env: TOXENV=py27
+    - os: linux
+      sudo: required
+      python: 3.6
+      env: TOXENV=py36
+#    - os: osx
+#     language: generic
+#     env: TOXENV=py27
+#    - os: osx
+#     language: generic
+#     env: TOXENV=py36
+# command to install dependencies
+install:
+  - source ./.travis/install.sh
+  - pip install pytest coverage pytest-timeout pytest_socket
+  - pip install python-coveralls
+  - pip install --upgrade coverage
+# Just check that the current install is happy
+  - pip install .
+# command to run tests
+script:
+  - coverage --version
+  - python --version
+  - coverage run --branch -m pytest -v && coverage report -m
+after_success:
+  - coveralls
