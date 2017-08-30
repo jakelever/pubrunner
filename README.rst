@@ -4,16 +4,16 @@ PubRunner
 
 |build-status| |coverage| |docs| |license|
 
-.. |build-status| image:: https://travis-ci.org/jakelever/kindred.svg?branch=master
-   :target: https://travis-ci.org/jakelever/kindred
+.. |build-status| image:: https://travis-ci.org/jakelever/pubrunner.svg?branch=master
+   :target: https://travis-ci.org/jakelever/pubrunner
    :alt: Travis CI status
 
-.. |coverage| image:: https://coveralls.io/repos/github/jakelever/kindred/badge.svg?branch=master
-   :target: https://coveralls.io/github/jakelever/kindred?branch=master
+.. |coverage| image:: https://coveralls.io/repos/github/jakelever/pubrunner/badge.svg?branch=master
+   :target: https://coveralls.io/github/jakelever/pubrunner?branch=master
    :alt: Coverage status
    
-.. |docs| image:: https://readthedocs.org/projects/kindred/badge/?version=stable
-   :target: http://kindred.readthedocs.io/en/stable/
+.. |docs| image:: https://readthedocs.org/projects/pubrunner/badge/?version=latest
+   :target: http://pubrunner.readthedocs.io/en/latest/
    :alt: Documentation status
    
 .. |license| image:: https://img.shields.io/badge/License-MIT-blue.svg
@@ -30,7 +30,7 @@ Contributions are very welcome.
 License
 -------
 
-Distributed under the terms of the `MIT`_ license, "kindred" is free and open source software
+Distributed under the terms of the `MIT`_ license, "pubrunner" is free and open source software
 
 Issues
 ------
@@ -41,4 +41,4 @@ If you encounter any problems, please `file an issue`_ along with a detailed des
 .. _`file an issue`: https://github.com/jakelever/pubrunner/issues
 .. _`pip`: https://pypi.python.org/pypi/pip/
 .. _`PyPI`: https://pypi.python.org/pypi
-.. _`readthedocs`: http://kindred.readthedocs.io/
+.. _`readthedocs`: http://pubrunner.readthedocs.io/
