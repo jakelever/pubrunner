@@ -39,6 +39,9 @@ setup(name='pubrunner',
 	packages=['pubrunner'],
 	install_requires=requirements,
 	include_package_data=True,
+	entry_points = {
+        'console_scripts': ['pubrunner=pubrunner.command_line:main'],
+    },
 	zip_safe=False,
 	test_suite='nose.collector',
 	tests_require=['nose'])
