@@ -1,3 +1,5 @@
+name: CountWords
+version: 0.1
 testdata:
    - PUBMED_SINGLEFILE
 rundata:

@@ -99,6 +99,21 @@ def pubrun(directory,doTest):
 	print(adaptedCommands)
 	execCommands(adaptedCommands)
 
+
+	if "upload" in globalSettings:
+		print(json.dumps(globalSettings,indent=2))
+		if "ftp" in globalSettings["upload"]:
+			print("Uploading results to FTP")
+			pubrunner.pushToFTP(outputDir,toolSettings,globalSettings)
+		if "local-directory" in globalSettings["upload"]:
+			print("Uploading results to local directory")
+			pubrunner.pushToLocalDirectory(outputDir,toolSettings,globalSettings)
+		if "zenodo" in globalSettings["upload"]:
+			print("Uploading results to Zenodo")
+			pubrunner.pushToZenodo(outputDir,toolSettings,globalSettings)
+
+	print("Sending update to website")
+
 def cloneGithubRepoToTempDir(githubRepo):
 	tempDir = tempfile.mkdtemp()
 	Repo.clone_from(githubRepo, tempDir)
