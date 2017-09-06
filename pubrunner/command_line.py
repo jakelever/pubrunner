@@ -40,6 +40,16 @@ def fetchDataset(dataset):
 	else:
 		raise RuntimeError("Unknown dataset: %s" % dataset)
 
+def loadYAML(filename):
+	yamlData = None
+	with open(yamlFile,'r') as f:
+		try:
+			yamlData = yaml.load(f)
+		except yaml.YAMLError as exc:
+			print(exc)
+			raise
+	return yamlData
+	
 def pubrun(directory,doTest):
 	os.chdir(directory)
 
@@ -47,12 +57,7 @@ def pubrun(directory,doTest):
 	if not os.path.isfile(yamlFile):
 		raise RuntimeError("Expected a .pubrunner.yml file in root of codebase")
 
-	with open(yamlFile,'r') as f:
-		try:
-			config = yaml.load(f)
-		except yaml.YAMLError as exc:
-			print(exc)
-			raise
+	config = loadYAML(yamlFile)
 
 	if "build" in config:
 		print("Running build")
