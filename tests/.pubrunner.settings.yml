@@ -1,0 +1,3 @@
+upload:
+   local-directory:
+      path: ~/out
