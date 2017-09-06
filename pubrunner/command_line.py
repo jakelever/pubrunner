@@ -54,8 +54,9 @@ def pubrun(directory,doTest):
 			print(exc)
 			raise
 
-	print("Running build")
-	execCommands(config["build"])
+	if "build" in config:
+		print("Running build")
+		execCommands(config["build"])
 	
 	print("Fetching datasets")
 	datasets = config["testdata"] if doTest else config["rundata"]
