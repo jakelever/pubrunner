@@ -40,38 +40,49 @@ def fetchDataset(dataset):
 	else:
 		raise RuntimeError("Unknown dataset: %s" % dataset)
 
-def loadYAML(filename):
+def loadYAML(yamlFilename):
 	yamlData = None
-	with open(yamlFile,'r') as f:
+	with open(yamlFilename,'r') as f:
 		try:
 			yamlData = yaml.load(f)
 		except yaml.YAMLError as exc:
 			print(exc)
 			raise
 	return yamlData
+
+def findSettingsFile():
+	possibilities = [ os.getcwd(), os.path.expanduser("~") ]
+	for directory in possibilities:
+		settingsPath = os.path.join(directory,'.pubrunner.settings.yml')
+		if os.path.isfile(settingsPath):
+			return settingsPath
+	raise RuntimeError("Unable to find .pubrunner.settings.yml file. Tried current directory first, then home directory")
 	
 def pubrun(directory,doTest):
+	settingsYamlFile = findSettingsFile()
+	globalSettings = loadYAML(settingsYamlFile)
+
 	os.chdir(directory)
 
-	yamlFile = '.pubrunner.yml'
-	if not os.path.isfile(yamlFile):
+	toolYamlFile = '.pubrunner.yml'
+	if not os.path.isfile(toolYamlFile):
 		raise RuntimeError("Expected a .pubrunner.yml file in root of codebase")
 
-	config = loadYAML(yamlFile)
+	toolSettings = loadYAML(toolYamlFile)
 
-	if "build" in config:
+	if "build" in toolSettings:
 		print("Running build")
-		execCommands(config["build"])
+		execCommands(toolSettings["build"])
 	
 	print("Fetching datasets")
-	datasets = config["testdata"] if doTest else config["rundata"]
+	datasets = toolSettings["testdata"] if doTest else toolSettings["rundata"]
 	datasetMap = {}
 	for dataset in datasets:
 		datasetMap[dataset] = fetchDataset(dataset)
 
 	print("Running tool")
 	outputDir = tempfile.mkdtemp()
-	runCommands = config["test"] if doTest else config["run"]
+	runCommands = toolSettings["test"] if doTest else toolSettings["run"]
 	print(runCommands)
 	adaptedCommands = []
 	for command in runCommands:
