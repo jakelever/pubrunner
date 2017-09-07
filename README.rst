@@ -22,6 +22,10 @@ PubRunner
 
 PubRunner is a framework to keep text mining tools running on the latest publications.
 
+Is PubRunner for me?
+--------------------
+
+When it's ready, yes
 
 Contributing
 ------------
