@@ -1,0 +1,12 @@
+name: CountWords
+version: 0.1
+testdata:
+   - PUBMED_SINGLEFILE
+rundata:
+   - PUBMED
+test:
+   - python CountWords.py -i PUBMED_SINGLEFILE -o OUTPUTDIR
+run:
+   - python CountWords.py -i PUBMED -o OUTPUTDIR
+output:
+   - OUTPUTDIR
