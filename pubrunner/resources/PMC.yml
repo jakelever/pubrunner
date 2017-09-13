@@ -1,0 +1,8 @@
+name: PMCOA
+url:
+   - ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/articles.A-B.xml.tar.gz
+   - ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/articles.C-H.xml.tar.gz
+   - ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/articles.I-N.xml.tar.gz
+   - ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/articles.O-Z.xml.tar.gz
+type: archives
+extract: true
