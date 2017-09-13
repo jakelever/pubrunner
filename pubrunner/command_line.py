@@ -120,11 +120,20 @@ def cloneGithubRepoToTempDir(githubRepo):
 	return tempDir
 
 def main():
-	parser = argparse.ArgumentParser(description='PubRunner will manage the download of needed resources for a text mining tool, build and execute it and then share the results publicly')
-	parser.add_argument('codebase',type=str,help='Code base containing the text mining tool to execute. Code base should contain a .pubrunner.yml file. The code base can be a directory, Github repo or archive')
+	earser = argparse.ArgumentParser(description='PubRunner will manage the download of needed resources for a text mining tool, build and execute it and then share the results publicly')
+	parser.add_argument('codebase',required=False,type=str,help='Code base containing the text mining tool to execute. Code base should contain a .pubrunner.yml file. The code base can be a directory, Github repo or archive')
 	parser.add_argument('--test',action='store_true',help='Run the test functionality instead of the full run')
+	parser.add_argument('--getResource',required=False,type=str,help='Fetch a specific resource (instead of doing a normal PubRunner run)')
 
 	args = parser.parse_args()
+
+	if args.getResource:
+		location = downloadResource(args.getResource)
+		print("Downloaded latest version of resource '%s' to location:" % args.getResource)
+		print(location)
+		print()
+		print("Exiting without doing PubRun")
+		sys.exit(0)
 
 	if os.path.isdir(args.codebase):
 		pubrun(args.codebase,args.test)
