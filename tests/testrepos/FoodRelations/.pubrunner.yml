@@ -1,12 +1,30 @@
-name: CountWords
+name: FoodRelations
 version: 0.1
-testdata:
-   - PUBMED_SINGLEFILE
-rundata:
-   - PUBMED
-test:
-   - python CountWords.py -i PUBMED_SINGLEFILE -o OUTPUTDIR
+mode: complete
+resources:
+   all:
+      - DISEASE_ONTOLOGY
+      - FOODON
+   main:
+      - PUBMED:
+         name: PUBMED
+         format: bioc
+      - PMCOA:
+         name: PMCOA
+         format: bioc
+   test:
+      - PUBMED_TWOFILES:
+         name: PUBMED
+         format: bioc
+      - PMCOA_TWOFILES:
+         name: PMCOA
+         format: bioc
+build:
+   - sh buildDiseaseList.sh $DISEASE_ONTOLOGY disease.json
+   - sh buildFoodList.sh $FOODON food.json
 run:
-   - python CountWords.py -i PUBMED -o OUTPUTDIR
+   - parallel:
+      - python cooccurrenceExtractor.py --biocFile $PUBMED --wordlist1 food.json --wordlist2 disease.json --outFile $TMPDIR/$PUBMED.cooccurrences
+   - python combineCooccurrences --cooccurrenceDir $TMPDIR --outFile $OUTFILE
 output:
-   - OUTPUTDIR
+   - OUTFILE
