@@ -2,3 +2,5 @@ six
 gitpython
 pyyaml
 wget
+requests
+ftputil
