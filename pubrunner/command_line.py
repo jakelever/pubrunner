@@ -156,24 +156,6 @@ def getResource(resource):
 			git.Repo.clone_from(resourceInfo["url"], thisResourceDir)
 			change = ResourceStatus.COMPLETE_CHANGE
 		return (thisResourceDir,change)
-	elif resourceInfo['type'] == 'file':
-		assert isinstance(resourceInfo['url'], six.string_types), 'The URL for a file resource must be a single address'
-
-		basename = resourceInfo['url'].split('/')[-1]
-		thisResourceFile = os.path.join(thisResourceDir,basename)
-		if os.path.isfile(thisResourceFile):
-			beforeHash = calcSHA256(thisResourceFile)
-			download(resourceInfo['url'],thisResourceFile)
-			afterHash = calcSHA256(thisResourceFile)
-			if beforeHash == afterHash:
-				change = ResourceStatus.NO_CHANGE
-			else:
-				change = ResourceStatus.COMPLETE_CHANGE
-		else:
-		 	os.makedirs(thisResourceDir)
-		 	download(resourceInfo['url'],thisResourceFile)
-		 	change = ResourceStatus.COMPLETE_CHANGE
-		return (thisResourceFile,change)
 	elif resourceInfo['type'] == 'dir':
 		assert isinstance(resourceInfo['url'], six.string_types) or isinstance(resourceInfo['url'],list), 'The URL for a dir resource must be a single or multiple addresses'
 		if isinstance(resourceInfo['url'], six.string_types):
