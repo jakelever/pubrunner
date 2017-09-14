@@ -1,0 +1,7 @@
+name: PUBMED_TWOFILES
+url:
+  - ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline/medline17n0891.xml.gz
+  - ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline/medline17n0892.xml.gz
+type: dir
+unzip: True
+
