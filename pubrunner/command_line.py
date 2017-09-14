@@ -136,7 +136,7 @@ def getResource(resource):
 	with open(resourceYamlPath) as f:
 		resourceInfo = yaml.load(f)
 
-	print(json.dumps(resourceInfo,indent=2))
+	#print(json.dumps(resourceInfo,indent=2))
 
 	if resourceInfo['type'] == 'git':
 		assert isinstance(resourceInfo['url'], six.string_types), 'The URL for a git resource must be a single address'
@@ -230,6 +230,7 @@ def findSettingsFile():
 	raise RuntimeError("Unable to find .pubrunner.settings.yml file. Tried current directory first, then home directory")
 	
 def pubrun(directory,doTest):
+	mode = "test" if doTest else "main"
 	settingsYamlFile = findSettingsFile()
 	globalSettings = loadYAML(settingsYamlFile)
 
@@ -245,26 +246,34 @@ def pubrun(directory,doTest):
 		print("Running build")
 		execCommands(toolSettings["build"])
 	
-	print("Fetching datasets")
-	datasets = toolSettings["testdata"] if doTest else toolSettings["rundata"]
-	datasetMap = {}
-	for dataset in datasets:
-		datasetMap[dataset] = fetchDataset(dataset)
-
+	print("Getting resources")
+	resourceMap = {}
+	resources = toolSettings["resources"]["all"] + toolSettings["resources"][mode]
+	for r in resources:
+		print type(r)
+		if isinstance(r,dict):
+			actualName,otherStuff = r.items()[0]
+			rename = actualName
+			if "name" in otherStuff:
+				rename = otherStuff["name"]
+			resourceMap['$'+rename] = getResource(actualName)
+		else:
+			resourceMap['$'+r] = getResource(r)
+	
 	print("Running tool")
 	outputDir = tempfile.mkdtemp()
-	runCommands = toolSettings["test"] if doTest else toolSettings["run"]
+	runCommands = toolSettings["run"]
 	print(runCommands)
 	adaptedCommands = []
 	for command in runCommands:
 		split = command.split(' ')
 		for i in range(len(split)):
-			if split[i] in datasetMap:
-				split[i] = datasetMap[split[i]]
-			elif split[i] == 'OUTPUTDIR':
+			if split[i] in resourceMap:
+				split[i] = resourceMap[split[i]][0]
+			elif split[i] == '$OUTPUTDIR':
 				split[i] = outputDir
-			elif split[i] == 'OUTPUTFILE':
-				split[i] = os.path.join(outputDir,'output')
+			#elif split[i] == 'OUTPUTFILE':
+			#	split[i] = os.path.join(outputDir,'output')
 		adaptedCommand = " ".join(split)
 		adaptedCommands.append(adaptedCommand)
 	print(adaptedCommands)
