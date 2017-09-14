@@ -1,12 +1,14 @@
 name: CountWords
-version: 0.1
-testdata:
-   - PUBMED_SINGLEFILE
-rundata:
-   - PUBMED
-test:
-   - python CountWords.py -i PUBMED_SINGLEFILE -o OUTPUTDIR
+version: 0.2
+mode: complete
+resources:
+   all:
+      - FOODON
+   main:
+      - PUBMED:
+         name: PUBMED
+   test:
+      - PUBMED_TWOFILES:
+         name: PUBMED
 run:
-   - python CountWords.py -i PUBMED -o OUTPUTDIR
-output:
-   - OUTPUTDIR
+   - python CountWords.py -i $PUBMED -o $OUTPUTDIR
