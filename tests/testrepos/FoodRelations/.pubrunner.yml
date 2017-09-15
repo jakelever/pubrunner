@@ -9,22 +9,26 @@ resources:
       - PUBMED:
          name: PUBMED
          format: bioc
-      - PMCOA:
-         name: PMCOA
-         format: bioc
+#      - PMCOA:
+#        name: PMCOA
+#        format: bioc
    test:
       - PUBMED_TWOFILES:
          name: PUBMED
          format: bioc
-      - PMCOA_TWOFILES:
-         name: PMCOA
-         format: bioc
+#      - PMCOA_TWOFILES:
+#        name: PMCOA
+#        format: bioc
 build:
-   - sh buildDiseaseList.sh $DISEASE_ONTOLOGY disease.json
-   - sh buildFoodList.sh $FOODON food.json
+   - sh buildDiseaseList.sh ?DISEASE_ONTOLOGY ?DISEASE_JSON2
+   - cp ?DISEASE_JSON2 ?DISEASE_JSON
+   - sh buildFoodList.sh ?FOODON ?FOOD_JSON
 run:
    - parallel:
-      - python cooccurrenceExtractor.py --biocFile $PUBMED --wordlist1 food.json --wordlist2 disease.json --outFile $TMPDIR/$PUBMED.cooccurrences
-   - python combineCooccurrences --cooccurrenceDir $TMPDIR --outFile $OUTFILE
+      - dir: ?PUBMED
+      - filter: .xml
+      - name: FILE
+      - python cooccurrenceExtractor.py --biocFile ?FILE --wordlist1 ?FOOD_JSON --wordlist2 ?DISEASE_JSON --outFile ?TMPDIR/?FILE.cooccurrences
+   - python combineCooccurrences --cooccurrenceDir ?TMPDIR --outFile ?OUTFILE
 output:
    - OUTFILE
