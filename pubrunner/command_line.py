@@ -20,8 +20,10 @@ import time
 from six.moves import reload_module
 import ftplib
 import ftputil
+import re
 
 def execCommands(commands):
+	raise RuntimeError("Not like this anymore")
 	assert isinstance(commands,list)
 	for command in commands:
 		print(command)
@@ -121,6 +123,19 @@ def gunzip(source,dest,deleteSource=False):
 	if deleteSource:
 		os.unlink(source)
 
+def getResourceLocation(resource):
+	#homeDir = os.path.expanduser("~")
+	homeDir = '/projects/bioracle/jake/pubrunnerTmp'
+	baseDir = os.path.join(homeDir,'.pubrunner')
+	thisResourceDir = os.path.join(baseDir,'resources',resource)
+	return thisResourceDir
+
+def makeLocation(name):
+	homeDir = '/projects/bioracle/jake/pubrunnerTmp'
+	baseDir = os.path.join(homeDir,'.pubrunner')
+	thisDir = os.path.join(baseDir,'workingDir',name)
+	return thisDir
+
 def getResource(resource):
 	print("Fetching resource: %s" % resource)
 
@@ -183,7 +198,7 @@ def getResource(resource):
 				download(url,os.path.join(thisResourceDir,basename))
 		 	change = ResourceStatus.COMPLETE_CHANGE
 		
-		if resourceInfo['unzip'] == True:
+		if 'unzip' in resourceInfo and resourceInfo['unzip'] == True:
 			for filename in os.listdir(thisResourceDir):
 				if filename.endswith('.gz'):
 					unzippedName = filename[:-3]
@@ -228,42 +243,18 @@ def findSettingsFile():
 		if os.path.isfile(settingsPath):
 			return settingsPath
 	raise RuntimeError("Unable to find .pubrunner.settings.yml file. Tried current directory first, then home directory")
-	
-def pubrun(directory,doTest):
-	mode = "test" if doTest else "main"
-	settingsYamlFile = findSettingsFile()
-	globalSettings = loadYAML(settingsYamlFile)
 
-	os.chdir(directory)
+def extractVariables(command):
+	assert isinstance(command,six.string_types)
+	regex = re.compile("\?[A-Za-z_0-9]*")
+	variables = []
+	for m in regex.finditer(command):
+		var = ( m.start(), m.end(), m.group()[1:] )
+		variables.append(var)
+	variables = sorted(variables,reverse=True)
+	return variables
 
-	toolYamlFile = '.pubrunner.yml'
-	if not os.path.isfile(toolYamlFile):
-		raise RuntimeError("Expected a .pubrunner.yml file in root of codebase")
-
-	toolSettings = loadYAML(toolYamlFile)
-
-	if "build" in toolSettings:
-		print("Running build")
-		execCommands(toolSettings["build"])
-	
-	print("Getting resources")
-	resourceMap = {}
-	resources = toolSettings["resources"]["all"] + toolSettings["resources"][mode]
-	for r in resources:
-		print type(r)
-		if isinstance(r,dict):
-			actualName,otherStuff = r.items()[0]
-			rename = actualName
-			if "name" in otherStuff:
-				rename = otherStuff["name"]
-			resourceMap['$'+rename] = getResource(actualName)
-		else:
-			resourceMap['$'+r] = getResource(r)
-	
-	print("Running tool")
-	outputDir = tempfile.mkdtemp()
-	runCommands = toolSettings["run"]
-	print(runCommands)
+def adaptCommands(commands,resourceMap,outputDir):
 	adaptedCommands = []
 	for command in runCommands:
 		split = command.split(' ')
@@ -276,8 +267,109 @@ def pubrun(directory,doTest):
 			#	split[i] = os.path.join(outputDir,'output')
 		adaptedCommand = " ".join(split)
 		adaptedCommands.append(adaptedCommand)
-	print(adaptedCommands)
-	execCommands(adaptedCommands)
+	return adaptedCommands
+
+def transformParallelCommands(commands):
+	runCommands = []
+	for command in commands:
+		if isinstance(command,dict):
+			assert len(command.items()) == 1
+			key,tmpparallelinfo = command.items()[0]
+			assert key == 'parallel'
+			parallelcommands = []
+			parallelinfo = {}
+			for pi in tmpparallelinfo:
+				if isinstance(pi,dict):
+					assert len(pi.items()) == 1
+					parallelinfo.update(pi)
+				else:
+					parallelcommands.append(pi)
+			#print parallelinfo, parallelcommands
+			runCommands.append((parallelinfo,parallelcommands))
+		else:
+			runCommands.append((None,command))
+	return runCommands
+
+
+def pubrun(directory,doTest):
+	mode = "test" if doTest else "main"
+	settingsYamlFile = findSettingsFile()
+	globalSettings = loadYAML(settingsYamlFile)
+
+	os.chdir(directory)
+
+	toolYamlFile = '.pubrunner.yml'
+	if not os.path.isfile(toolYamlFile):
+		raise RuntimeError("Expected a .pubrunner.yml file in root of codebase")
+
+	toolSettings = loadYAML(toolYamlFile)
+	print(json.dumps(toolSettings,indent=2))
+	
+	if not "all" in toolSettings["resources"]:
+		toolSettings["resources"]["all"] = []
+	if not mode in toolSettings["resources"]:
+		toolSettings["resources"][mode] = []
+
+	print("Getting resources")
+	resourceMap = {}
+	resources = toolSettings["resources"]["all"] + toolSettings["resources"][mode]
+
+	makeCommands = {}
+	locations = {}
+
+	for r in resources:
+		if isinstance(r,dict):
+			actualName,otherStuff = r.items()[0]
+			rename = actualName
+			if "name" in otherStuff:
+				rename = otherStuff["name"]
+			#locations[rename] = getResource(actualName)[0]
+			location = getResourceLocation(actualName)
+			makeCommands[rename] = ([],"pubrunner --getResource %s --out %s" % (actualName,location))
+			locations[rename] = location
+		else:
+			#locations[r] = getResource(r)[0]
+			location = getResourceLocation(r)
+			makeCommands[r] = ([],"pubrunner --getResource %s --out %s" % (r,location))
+			locations[r] = location
+
+	if not "build" in toolSettings:
+		toolSettings["build"] = []
+
+	print("Running build")
+	#commandSet.append(('build',toolSettings["build"]))
+	for command in toolSettings["build"]:
+		print command
+		variables = extractVariables(command)
+		dependencies = []
+		targets = []
+		print variables
+		for startPos,endPos,v in variables:
+			if v in locations:
+				dependencies.append(locations[v])
+			else:
+			 	locations[v] = makeLocation(v)
+				targets.append(v)
+			command = command[:startPos] + locations[v] + command[endPos:]
+
+		print 'X', targets, dependencies, command
+		assert len(targets) == 1, "Each command is expected to generate ONE new output file/dir"
+		makeCommands[targets[0]] = (dependencies,command)
+		#print variables
+
+	print json.dumps(makeCommands,indent=2)
+
+	print("Running tool")
+	#outputDir = tempfile.mkdtemp()
+	outputDir = '/projects/bioracle/jake/pubrunnerTmp/out/'
+	#runCommands = adaptCommands(toolSettings["run"],resourceMap,outputDir)
+	#print(runCommands)
+	runCommands = transformParallelCommands(toolSettings["run"])
+					
+	print(runCommands)
+	#execCommands(adaptedCommands)
+
+	sys.exit(0)
 
 
 	if "upload" in globalSettings:
