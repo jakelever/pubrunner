@@ -40,8 +40,8 @@ setup(name='pubrunner',
 	install_requires=requirements,
 	include_package_data=True,
 	entry_points = {
-        'console_scripts': ['pubrunner=pubrunner.command_line:main'],
-    },
+		'console_scripts': ['pubrunner=pubrunner.command_line:main','pubrunner_convert=pubrunner.convert:main'],
+	},
 	zip_safe=False,
 	test_suite='nose.collector',
 	tests_require=['nose'])
