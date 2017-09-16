@@ -374,6 +374,65 @@ def dealWithResourceSettings(toolSettings,mode):
 
 			toolSettings[execList][i] = (parallelinfo,command)
 
+def generateParallelMakeCode(parallelinfo,command,target,dependencies):
+	variables = extractVariables(command)
+	for startPos,endPos,v in variables:
+		if v == 'INFILE':
+			command = command[:startPos] + "$<" + command[endPos:]
+		elif v == 'OUTFILE':
+			command = command[:startPos] + "$@" + command[endPos:]
+		else:
+			command = command[:startPos] + "$("+v+"_LOC)" + command[endPos:]
+
+	t = ""
+	if isinstance(parallelinfo,dict):
+		inDir = parallelinfo['indir'].lstrip('?')
+		outDir = parallelinfo['outdir'].lstrip('?')
+		inFilter = parallelinfo['filter'].lstrip('?') if 'filter' in parallelinfo else ''
+
+		makeLocation(outDir,createDir=True)
+		#makeLocation(outDir+'_PARALLEL',createDir=True)
+
+		t += "@OUTDIR_FILES = $(@INDIR_FILES:$(@INDIR_LOC)/%@INFILTER=$(@OUTDIR_LOC)/%)\n"
+		#t += "@OUTDIR_FILES_PARALLEL = $(@INDIR_FILES:$(@INDIR_LOC)/%@INFILTER=$(@OUTDIR_LOC)/%.parallel)\n"
+		t += "$(@OUTDIR_LOC)/%: $(@INDIR_LOC)/%@INFILTER $(@INDIR_LOC) @DEPENDENCIES\n"
+		t += "\techo '@COMMAND' >> $(@OUTDIR_LOC)_JOBLIST\n"
+		t += "\ttouch $<\n"
+
+		t += "$(@OUTDIR_LOC)_JOBLIST: $(@OUTDIR_FILES)\n"
+
+
+		#t += "$(@OUTDIR_LOC)/FENCE: $(@OUTDIR_FILES_PARALLEL)\n"
+		t += "$(@OUTDIR_LOC): $(@OUTDIR_LOC)_JOBLIST\n"
+		t += "\tsh $(@OUTDIR_LOC)_JOBLIST\n"
+		#t += "\trm $(@OUTDIR_LOC)/JOBLIST\n"
+		#t += "\ttouch $(@OUTDIR_LOC)/FENCE\n"
+		t += "\ttouch $(@OUTDIR_LOC)\n\n"
+		
+		#t += "$(@OUTDIR_LOC)/%: $(@OUTDIR_LOC)/FENCE\n"
+
+
+
+		t = t.replace('@INDIR',inDir)
+		t = t.replace('@OUTDIR',outDir)
+		t = t.replace('@INFILTER',inFilter)
+	else:
+		t += "$(@TARGET_LOC): @DEPENDENCIES\n"
+		t += "\t@COMMAND\n\n"
+
+	if not target is None:
+		t = t.replace('@TARGET',target)
+	t = t.replace('@COMMAND',command)
+
+	depsWithFiles = []
+	for dependency in dependencies:
+		d = "$(@DEP_LOC)".replace('@DEP',dependency)
+		depsWithFiles.append(d)
+	dependencyText = " ".join(depsWithFiles)
+	t = t.replace('@DEPENDENCIES', dependencyText)
+
+	return t
+
 def generateMakeCode(parallelinfo,command,target,dependencies):
 	variables = extractVariables(command)
 	for startPos,endPos,v in variables:
@@ -516,7 +575,8 @@ def pubrun(directory,doTest):
 
 	#print(json.dumps(execCommandsWithTargets,indent=2))
 	for parallelinfo,command,target,dependencies in execCommandsWithTargets:
-		makeCode = generateMakeCode(parallelinfo,command,target,dependencies)
+		#makeCode = generateMakeCode(parallelinfo,command,target,dependencies)
+		makeCode = generateParallelMakeCode(parallelinfo,command,target,dependencies)
 		allMakeCode += makeCode + "\n"
 		print makeCode
 		#print (command,target,dependencies)
