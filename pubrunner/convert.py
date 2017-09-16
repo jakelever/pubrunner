@@ -11,6 +11,36 @@ import re
 from collections import defaultdict
 import tempfile
 import bioc
+import pymarc
+
+def marcxml2bioc(record,biocWriter):
+	language = record['008'].value().split('|')[17]
+	if language != 'eng':
+		return
+
+	recordid = record['001'].value()
+
+	title = record.title()
+	textSources = [title]
+
+	abstract = None
+	if '520' in record and 'a' in record['520']:
+		abstract = record['520']['a']
+		textSources.append(abstract)
+
+	#print recordid, language, title, abstract
+	biocDoc = bioc.BioCDocument()
+	biocDoc.id = recordid
+
+	offset = 0
+	for textSource in textSources:
+		passage = bioc.BioCPassage()
+		passage.text = textSource
+		passage.offset = offset
+		offset += len(textSource)
+		biocDoc.add_passage(passage)
+
+	biocWriter.writedocument(biocDoc)
 
 # Remove empty brackets (that could happen if the contents have been removed already
 # e.g. for citation ( [3] [4] ) -> ( ) -> nothing
@@ -194,10 +224,17 @@ def main():
 	inFormat = args.iFormat.lower()
 	outFormat = args.oFormat.lower()
 
-	assert inFormat == 'pubmedxml'
-	assert outFormat == 'bioc'
+	assert inFormat in ['pubmedxml','marcxml']
+	assert outFormat in ['bioc']
 
 	print("Starting conversion of %s." % args.i)
-	pubmedxml2bioc(args.i,args.o)
+	if inFormat == 'pubmedxml':
+		pubmedxml2bioc(args.i,args.o)
+	elif inFormat == 'marcxml':
+		with open(args.i,'rb') as inF, bioc.iterwrite(args.o) as writer:
+			def marcxml2bioc_helper(record):
+				marcxml2bioc(record,writer)
+
+			pymarc.map_xml(marcxml2bioc_helper,inF)
 	print("Output to %s complete." % args.o)
 

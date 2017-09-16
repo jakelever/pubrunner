@@ -1,0 +1,8 @@
+name: AGRICOLA
+url:
+  - PUT URL HERE
+type: dir
+format: marcxml
+filter: .xml
+unzip: True
+

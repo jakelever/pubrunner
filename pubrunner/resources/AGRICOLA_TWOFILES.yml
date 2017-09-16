@@ -1,0 +1,8 @@
+name: AGRICOLA_TWOFILES
+url:
+  - PUT URL HERE
+type: dir
+format: marcxml
+filter: .xml
+unzip: True
+
