@@ -20,6 +20,7 @@ import time
 from six.moves import reload_module
 import ftplib
 import ftputil
+from collections import OrderedDict
 import re
 
 def execCommands(commands):
@@ -114,6 +115,9 @@ def download(url,out):
 
 		#sys.exit(0)
 	else:
+		if os.path.isfile(out):
+			os.unlink(out)
+
 		wget.download(url,out,bar=None)
 
 def gunzip(source,dest,deleteSource=False):
@@ -130,10 +134,20 @@ def getResourceLocation(resource):
 	thisResourceDir = os.path.join(baseDir,'resources',resource)
 	return thisResourceDir
 
-def makeLocation(name):
+def getResourceInfo(resource):
+	packagePath = os.path.dirname(pubrunner.__file__)
+	resourceYamlPath = os.path.join(packagePath,'resources','%s.yml' % resource)
+	with open(resourceYamlPath) as f:
+		resourceInfo = yaml.load(f)
+
+	return resourceInfo
+
+def makeLocation(name,createDir=False):
 	homeDir = '/projects/bioracle/jake/pubrunnerTmp'
 	baseDir = os.path.join(homeDir,'.pubrunner')
 	thisDir = os.path.join(baseDir,'workingDir',name)
+	if createDir and not os.path.isdir(thisDir):
+		os.makedirs(thisDir)
 	return thisDir
 
 def getResource(resource):
@@ -290,6 +304,27 @@ def transformParallelCommands(commands):
 			runCommands.append((None,command))
 	return runCommands
 
+def orderedUniq(lst):
+	d = OrderedDict()
+	for k in lst:
+		d[k] = 1
+	return list(d.keys())
+
+def createMakeFile(filename, makeDefinitions, makeCommands):
+	with open(filename, 'w') as f:
+		for name,value in makeDefinitions:
+			f.write("%s = %s\n\n" % (name,value))
+
+		for target,(dependencies,commands) in makeCommands.items():
+			dependencies = orderedUniq(dependencies)
+			f.write("%s: %s\n" % (target, " ".join(dependencies)))
+			if not isinstance(commands,list):
+				commands = [commands]
+
+			for command in commands:
+				f.write("\t%s\n" % command)
+			f.write("\n")
+
 
 def pubrun(directory,doTest):
 	mode = "test" if doTest else "main"
@@ -314,8 +349,11 @@ def pubrun(directory,doTest):
 	resourceMap = {}
 	resources = toolSettings["resources"]["all"] + toolSettings["resources"][mode]
 
-	makeCommands = {}
+	makeCommands = OrderedDict()
+	makeDefinitions = []
 	locations = {}
+
+	#variableRenameTracker = {}
 
 	for r in resources:
 		if isinstance(r,dict):
@@ -324,14 +362,45 @@ def pubrun(directory,doTest):
 			if "name" in otherStuff:
 				rename = otherStuff["name"]
 			#locations[rename] = getResource(actualName)[0]
-			location = getResourceLocation(actualName)
-			makeCommands[rename] = ([],"pubrunner --getResource %s --out %s" % (actualName,location))
-			locations[rename] = location
+			resLocation = getResourceLocation(actualName)
+			resInfo = getResourceInfo(actualName)
+			fromFilter = resInfo["filter"] if "filter" in resInfo else ""
+
+			if "format" in otherStuff:
+				assert "format" in resInfo, "Format is not defined for resource (%s). Cannot convert it to something else" % actualName
+
+
+				fromFormat = resInfo["format"]
+				toFormat = otherStuff["format"]
+
+				locations[rename+"_UNCONVERTED"] = resLocation
+				makeCommands[rename+"_UNCONVERTED"] = ([],"pubrunner --getResource %s #--out %s" % (actualName,resLocation))
+				makeDefinitions.append( (rename+"_UNCONVERTED_LOC", resLocation) )
+				makeDefinitions.append( (rename+"_UNCONVERTED_FILES", "$(wildcard $("+rename+"_UNCONVERTED_LOC)/*."+fromFilter+")" ) )
+
+				convertedLocation = makeLocation(rename+"_CONVERTED_"+toFormat,createDir=True)
+				locations[rename] = convertedLocation
+				wildcard = "$(" + rename + '_LOC)/%'
+				makeCommands[wildcard] = (["$(%s_UNCONVERTED_FILES)" % rename],"pubrunner_convert --i $< --iFormat "+fromFormat+" --o $@ --oFormat "+toFormat)
+				makeDefinitions.append( (rename+"_LOC", convertedLocation) )
+				makeDefinitions.append( (rename+"_FILES", "$("+rename+"_UNCONVERTED_FILES)/%"+fromFilter+"="+wildcard+")" ))
+			else:
+				makeCommands[rename] = ([],"pubrunner --getResource %s #--out %s" % (actualName,resLocation))
+				locations[rename] = resLocation
+				makeDefinitions.append( (rename+"_LOC", resLocation) )
+				makeDefinitions.append( (rename+"_FILES", "$(wildcard $("+rename+"_LOC)/*"+fromFilter+")" ) )
+			
 		else:
 			#locations[r] = getResource(r)[0]
-			location = getResourceLocation(r)
-			makeCommands[r] = ([],"pubrunner --getResource %s --out %s" % (r,location))
-			locations[r] = location
+			resLocation = getResourceLocation(r)
+			resInfo = getResourceInfo(r)
+			fromFilter = resInfo["filter"] if "filter" in resInfo else ""
+
+			makeCommands[r] = ([],"pubrunner --getResource %s #--out %s" % (r,resLocation))
+			locations[r] = resLocation
+			makeDefinitions.append( (r+"_LOC", resLocation) )
+			makeDefinitions.append( (r+"_FILES", "$(wildcard $("+r+"_LOC)/*"+fromFilter+")" ) )
+
 
 	if not "build" in toolSettings:
 		toolSettings["build"] = []
@@ -339,23 +408,32 @@ def pubrun(directory,doTest):
 	print("Running build")
 	#commandSet.append(('build',toolSettings["build"]))
 	for command in toolSettings["build"]:
-		print command
+		#print command
 		variables = extractVariables(command)
 		dependencies = []
 		targets = []
-		print variables
+		#print variables
 		for startPos,endPos,v in variables:
 			if v in locations:
-				dependencies.append(locations[v])
+				#dependencies.append(locations[v])
+				#dependencies.append(v)
+				dependencies.append("$("+v+"_FILES)")
 			else:
 			 	locations[v] = makeLocation(v)
-				targets.append(v)
-			command = command[:startPos] + locations[v] + command[endPos:]
+				makeDefinitions.append( (v+"_LOC", locations[v]) )
+				targets.append("$("+v+"_LOC)")
+			#command = command[:startPos] + locations[v] + command[endPos:]
+			command = command[:startPos] + "$("+v+"_LOC)" + command[endPos:]
 
-		print 'X', targets, dependencies, command
+		touchCommand = "touch $("+v+"_LOC)"
+
+		#print 'X', targets, dependencies, command
 		assert len(targets) == 1, "Each command is expected to generate ONE new output file/dir"
-		makeCommands[targets[0]] = (dependencies,command)
+		makeCommands[targets[0]] = (dependencies,[command,touchCommand])
 		#print variables
+
+	createMakeFile('Makefile',makeDefinitions,makeCommands)
+	sys.exit(0)
 
 	print json.dumps(makeCommands,indent=2)
 
