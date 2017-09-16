@@ -21,13 +21,12 @@ resources:
 #        format: bioc
 build:
    - python generateDiseaseTerms.py --diseaseOntologyFile ?DISEASE_ONTOLOGY/doid.obo --outFile ?DISEASE_JSON
-   - python extractFoodOnTerms.py --owlFiles $FOODON/imports/langual_import.owl,$FOODON/imports/ncbitaxon_import.owl,$FOODON/imports/foodon_product_import.owl,$FOODON/imports/product_type_import.owl --outFile ?FOOD_JSON
+   - python extractFoodOnTerms.py --owlFiles ?FOODON/imports/langual_import.owl,?FOODON/imports/ncbitaxon_import.owl,?FOODON/imports/foodon_product_import.owl,?FOODON/imports/product_type_import.owl --outFile ?FOOD_JSON
 run:
    - parallel:
-      - dir: ?PUBMED
-      - filter: .xml
-      - name: FILE
-      - python cooccurrenceExtractor.py --biocFile ?FILE --wordlist1 ?FOOD_JSON --wordlist2 ?DISEASE_JSON --outFile ?TMPDIR/?FILE.cooccurrences
-   - python combineCooccurrences --cooccurrenceDir ?TMPDIR --outFile ?OUTFILE
+      - indir: ?PUBMED
+      - outdir: ?TMPDIR
+      - python cooccurrenceExtractor.py --biocFile ?INFILE --wordlist1 ?FOOD_JSON --wordlist2 ?DISEASE_JSON --outFile ?OUTFILE
+   - python combineCooccurrences.py --inDir ?TMPDIR --outFile ?RESULTFILE
 output:
-   - OUTFILE
+   - RESULTFILE
