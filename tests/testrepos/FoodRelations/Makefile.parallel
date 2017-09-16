@@ -8,7 +8,7 @@ FOODON = /projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/FOODON
 DISEASE_ONTOLOGY = /projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/DISEASE_ONTOLOGY
 
 pubmed_files  := $(wildcard /projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/PUBMED_TWOFILES/*.xml)
-convertedBioc = $(pubmed_files:/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/PUBMED_TWOFILES/%.xml=bioc/%.bioc)
+convertedBioc = $(pubmed_files:/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/PUBMED_TWOFILES/%.xml=bioc/%)
 
 food.json:
 	python extractFoodOnTerms.py --owlFiles $(FOODON)/imports/langual_import.owl,$(FOODON)/imports/ncbitaxon_import.owl,$(FOODON)/imports/foodon_product_import.owl,$(FOODON)/imports/product_type_import.owl --outFile food.json
@@ -16,12 +16,12 @@ food.json:
 disease.json:
 	python generateDiseaseTerms.py --diseaseOntologyFile $(DISEASE_ONTOLOGY)/doid.obo --outFile disease.json
 
-bioc/%.bioc: /projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/PUBMED_TWOFILES/%.xml
+bioc/%: /projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/PUBMED_TWOFILES/%.xml
 	pubrunner_convert --i $< --iFormat pubmedxml --o $@ --oFormat bioc
 
 
-cooccurrencesPARALLEL = $(convertedBioc:bioc/%.bioc=tmpDir/%.cooccurrences.PARALLEL)
-tmpDir/%.cooccurrences.PARALLEL: bioc/%.bioc food.json disease.json
+cooccurrencesPARALLEL = $(convertedBioc:bioc/%=tmpDir/%.cooccurrences.PARALLEL)
+tmpDir/%.cooccurrences.PARALLEL: bioc/% food.json disease.json
 	echo "python cooccurrenceExtractor.py --biocFile $< --wordlist1 food.json --wordlist2 disease.json --outFile $@" >> jobList
 	touch $@
 
