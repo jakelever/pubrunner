@@ -391,12 +391,6 @@ def generateMakeCode(parallelinfo,command,target,dependencies):
 		inFilter = parallelinfo['filter'].lstrip('?') if 'filter' in parallelinfo else ''
 
 		makeLocation(outDir,createDir=True)
-		#print parallelinfo,target
-
-		#t += target+"_FILES = $("+inDir+":$("+inDir+"_LOC)/%."+inFilter+"="+outDir+"/%)" + "\n"
-		#t += "$(" + outDir+"_LOC)/%: $(" + inDir + "_FILES) " + " ".join(dependencies) + "\n"
-		#t += "\t" + "echo '" + command + "' >> jobList" + "\n"
-		#t += "\t" + "touch $@" + "\n"
 
 		t += "@OUTDIR_FILES = $(@INDIR_FILES:$(@INDIR_LOC)/%@INFILTER=$(@OUTDIR_LOC)/%)\n"
 		t += "$(@OUTDIR_LOC)/%: $(@INDIR_LOC)/%@INFILTER @DEPENDENCIES\n"
@@ -409,10 +403,6 @@ def generateMakeCode(parallelinfo,command,target,dependencies):
 		t = t.replace('@OUTDIR',outDir)
 		t = t.replace('@INFILTER',inFilter)
 	else:
-	 	#t += target + ": " + " ".join(dependencies) + "\n"
-	 	#t += "\t" + command + "\n"
-	 	#t += "\n"
-		#t += "@TARGET_FILES = $(@TARGET_LOC)\n"
 		t += "$(@TARGET_LOC): @DEPENDENCIES\n"
 		t += "\t@COMMAND\n\n"
 
@@ -429,29 +419,6 @@ def generateMakeCode(parallelinfo,command,target,dependencies):
 
 	return t
 
-def tmp():
-	pass
-	t = ""
-	t += target+"_PARALLEL = $("+inDir+"):$("+inDir+"_LOC)/%=tmpDir/%.cooccurrences.PARALLEL)" + "\n"
-	t += outDir+"/%.parallel: " + inDir + "/%" + inFilter + " ".join(dependencies) + "\n"
-	t += "\t" + "echo '" + command + "' >> jobList" + "\n"
-	t += "\t" + "touch $@" + "\n"
-
-	t += outDir + "/FENCE: $(" + target + "_PARALLEL)" + "\n"
-	t += "\t" + "sh jobList"
-	t += "\t" + "rm jobList"
-	t += "\t" + "touch " + outDir + "/FENCE"
-
-	#t += target+"_FILES = $("+
-	#t += outDir + "/% :" + outDir + "/FENCE"
-	#t .= python $(PUBRUNNER_HOME)/cluster_master.py --local --jobList jobList
-	#rm jobList
-	#touch tmpDir/FENCE
-
-	#tmpDir/%.cooccurrences: tmpDir/FENCE
-	#echo
-
-	#cooccurrences = $(convertedBioc:bioc/%.bioc=tmpDir/%.cooccurrences)
 
 
 def pubrun(directory,doTest):
