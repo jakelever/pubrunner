@@ -299,7 +299,8 @@ def transformParallelCommands(commands):
 				else:
 					parallelcommands.append(pi)
 			#print parallelinfo, parallelcommands
-			runCommands.append((parallelinfo,parallelcommands))
+			for pc in parallelcommands:
+				runCommands.append((parallelinfo,pc))
 		else:
 			runCommands.append((None,command))
 	return runCommands
@@ -326,6 +327,131 @@ def createMakeFile(filename, makeDefinitions, makeCommands):
 			f.write("\n")
 
 
+def dealWithResourceSettings(toolSettings,mode):
+	newResourceList = []
+	preprocessingCommands = []
+	renameMap = {}
+	for resourceGroupName in ["all",mode]:
+		for resName in toolSettings["resources"][resourceGroupName]:
+			if isinstance(resName,dict):
+				assert len(resName.items()) == 1
+
+				resName,resSettings = resName.items()[0]
+	
+				resInfo = getResourceInfo(resName)
+				fromFormat = resInfo["format"]
+
+				if "name" in resSettings:
+					rename = resSettings["name"]
+					renameMap[rename] = resName + "_CONVERTED"
+				if "format" in resSettings:
+					toFormat = resSettings["format"]
+					parallelInfo = {'indir':'?'+resName, 'outdir':"?"+resName+"_CONVERTED", 'filter':resInfo["filter"]}
+					command = "pubrunner_convert --i ?INFILE --iFormat "+fromFormat+" --o ?OUTFILE --oFormat "+toFormat
+					preprocessingCommands.append( (parallelInfo, command) )
+				newResourceList.append(resName)
+			else:
+				newResourceList.append(resName)
+
+		#newResources[resourceGroupName] = newResourceList
+	toolSettings["resources"] = newResourceList
+
+	toolSettings["build"] = preprocessingCommands + toolSettings["build"]
+	
+	for execList in ["build","run"]:
+		assert isinstance(toolSettings[execList],list)
+		for i in range(len(toolSettings[execList])):
+			parallelinfo,command = toolSettings[execList][i]
+			variables = extractVariables(command)
+			for startPos,endPos,v in variables:
+				if v in renameMap:
+					command = command[:startPos] + "$("+renameMap[v]+"_LOC)" + command[endPos:]
+
+			if isinstance(parallelinfo,dict) and "indir" in parallelinfo:
+				dirname = parallelinfo['indir'].lstrip('?')
+				if dirname in renameMap:
+					parallelinfo['indir'] = '?'+renameMap[dirname]
+
+			toolSettings[execList][i] = (parallelinfo,command)
+
+def generateMakeCode(parallelinfo,command,target,dependencies):
+	variables = extractVariables(command)
+	for startPos,endPos,v in variables:
+		if v == 'INFILE':
+			command = command[:startPos] + "$<" + command[endPos:]
+		elif v == 'OUTFILE':
+			command = command[:startPos] + "$@" + command[endPos:]
+		else:
+			command = command[:startPos] + "$("+v+"_LOC)" + command[endPos:]
+
+	t = ""
+	if isinstance(parallelinfo,dict):
+		inDir = parallelinfo['indir'].lstrip('?')
+		outDir = parallelinfo['outdir'].lstrip('?')
+		inFilter = parallelinfo['filter'].lstrip('?') if 'filter' in parallelinfo else ''
+
+		makeLocation(outDir,createDir=True)
+		#print parallelinfo,target
+
+		#t += target+"_FILES = $("+inDir+":$("+inDir+"_LOC)/%."+inFilter+"="+outDir+"/%)" + "\n"
+		#t += "$(" + outDir+"_LOC)/%: $(" + inDir + "_FILES) " + " ".join(dependencies) + "\n"
+		#t += "\t" + "echo '" + command + "' >> jobList" + "\n"
+		#t += "\t" + "touch $@" + "\n"
+
+		t += "@OUTDIR_FILES = $(@INDIR_FILES:$(@INDIR_LOC)/%@INFILTER=$(@OUTDIR_LOC)/%)\n"
+		t += "$(@OUTDIR_LOC)/%: $(@INDIR_LOC)/%@INFILTER @DEPENDENCIES\n"
+		t += "\t@COMMAND\n"
+		t += "\ttouch $(@OUTDIR_LOC)\n\n"
+
+		t = t.replace('@INDIR',inDir)
+		t = t.replace('@OUTDIR',outDir)
+		t = t.replace('@INFILTER',inFilter)
+	else:
+	 	#t += target + ": " + " ".join(dependencies) + "\n"
+	 	#t += "\t" + command + "\n"
+	 	#t += "\n"
+		t += "@TARGET_FILES = $(@TARGET_LOC)\n"
+		t += "$(@TARGET_LOC): @DEPENDENCIES\n"
+		t += "\t@COMMAND\n\n"
+
+	if not target is None:
+		t = t.replace('@TARGET',target)
+	t = t.replace('@COMMAND',command)
+
+	depsWithFiles = []
+	for dependency in dependencies:
+		d = "$(@DEP_FILES)".replace('@DEP',dependency)
+		depsWithFiles.append(d)
+	dependencyText = " ".join(depsWithFiles)
+	t = t.replace('@DEPENDENCIES', dependencyText)
+
+	return t
+
+def tmp():
+	pass
+	t = ""
+	t += target+"_PARALLEL = $("+inDir+"):$("+inDir+"_LOC)/%=tmpDir/%.cooccurrences.PARALLEL)" + "\n"
+	t += outDir+"/%.parallel: " + inDir + "/%" + inFilter + " ".join(dependencies) + "\n"
+	t += "\t" + "echo '" + command + "' >> jobList" + "\n"
+	t += "\t" + "touch $@" + "\n"
+
+	t += outDir + "/FENCE: $(" + target + "_PARALLEL)" + "\n"
+	t += "\t" + "sh jobList"
+	t += "\t" + "rm jobList"
+	t += "\t" + "touch " + outDir + "/FENCE"
+
+	#t += target+"_FILES = $("+
+	#t += outDir + "/% :" + outDir + "/FENCE"
+	#t .= python $(PUBRUNNER_HOME)/cluster_master.py --local --jobList jobList
+	#rm jobList
+	#touch tmpDir/FENCE
+
+	#tmpDir/%.cooccurrences: tmpDir/FENCE
+	#echo
+
+	#cooccurrences = $(convertedBioc:bioc/%.bioc=tmpDir/%.cooccurrences)
+
+
 def pubrun(directory,doTest):
 	mode = "test" if doTest else "main"
 	settingsYamlFile = findSettingsFile()
@@ -340,10 +466,107 @@ def pubrun(directory,doTest):
 	toolSettings = loadYAML(toolYamlFile)
 	print(json.dumps(toolSettings,indent=2))
 	
+	if not "build" in toolSettings:
+		toolSettings["build"] = []
 	if not "all" in toolSettings["resources"]:
 		toolSettings["resources"]["all"] = []
 	if not mode in toolSettings["resources"]:
 		toolSettings["resources"][mode] = []
+
+	toolSettings["build"] = transformParallelCommands(toolSettings["build"])
+	toolSettings["run"] = transformParallelCommands(toolSettings["run"])
+
+	dealWithResourceSettings(toolSettings,mode)
+	#print(json.dumps(toolSettings,indent=2))
+	#sys.exit(0)
+
+	execCommands = toolSettings["build"] + toolSettings["run"]
+	execCommandsWithTargets = []
+
+	alltargets = set(toolSettings["resources"])
+	for parallelinfo,command in execCommands:
+		variables = extractVariables(command)
+		thisDependencies = set()
+		thisTarget = None
+
+
+		for startPos,endPos,v in variables:
+			if v == 'INFILE' or v == "OUTFILE":
+				continue
+			#if isinstance(parallelinfo,dict):
+				#assert False, v
+			#	continue
+
+			if v in alltargets:
+				thisDependencies.add(v)
+			else:
+				assert thisTarget is None, 'Only one target per command. Already got %s and now got %s for command: %s' % (thisTarget,v,command) 
+				thisTarget = v
+				alltargets.add(v)
+		
+		if not isinstance(parallelinfo,dict):
+		#	alltargets.add(parallelinfo["outdir"].lstrip('?'))
+
+			print alltargets
+			assert not thisTarget is None, "Couldn't find target in command: %s" % command
+		else:
+			alltargets.add(parallelinfo["outdir"].lstrip('?'))
+			
+
+		commandWithTarget = (parallelinfo,command,thisTarget,list(thisDependencies))
+		execCommandsWithTargets.append(commandWithTarget)
+
+	allMakeCode = ""
+
+	for res in toolSettings["resources"]:
+		resLocation = getResourceLocation(res)
+		resInfo = getResourceInfo(res)
+		resFilter = resInfo["filter"] if "filter" in resInfo else ""
+		makeCode = "@RESOURCE_LOC = @RESLOCATION\n"
+		makeCode += "@RESOURCE_FILES := $(wildcard $(@RESOURCE_LOC)/*@RESFILTER)\n"
+		makeCode += "@RESOURCE:\n"
+		makeCode += "\tpubrunner --getResource @RESOURCE\n"
+		makeCode = makeCode.replace("@RESOURCE",res)
+		makeCode = makeCode.replace("@RESLOCATION",resLocation)
+		makeCode = makeCode.replace("@RESFILTER",resFilter)
+
+		allMakeCode += makeCode + "\n"
+		print makeCode
+
+	for target in alltargets:
+		if target in toolSettings["resources"]:
+			continue
+
+		targetLocation = makeLocation(target)
+		makeCode = "@TARGET_LOC = @TARGETLOCATION\n"
+		makeCode = makeCode.replace("@TARGETLOCATION",targetLocation)
+		makeCode = makeCode.replace("@TARGET",target)
+		allMakeCode += makeCode + "\n"
+		print makeCode
+
+
+	#print(json.dumps(execCommandsWithTargets,indent=2))
+	for parallelinfo,command,target,dependencies in execCommandsWithTargets:
+		makeCode = generateMakeCode(parallelinfo,command,target,dependencies)
+		allMakeCode += makeCode + "\n"
+		print makeCode
+		#print (command,target,dependencies)
+
+
+	with open('Makefile','w') as f:
+		f.write(allMakeCode)
+	sys.exit(0)
+
+	for parallelinfo, command, target, dependencies in execCommands:
+		if isinstance(parallelinfo,dict):
+			inDir = parallelinfo['indir']
+			inFilter = parallelinfo['filter']
+			outDir = parallelinfo['outdir']
+			
+
+	print(json.dumps(toolSettings,indent=2))
+
+	sys.exit(0)
 
 	print("Getting resources")
 	resourceMap = {}
