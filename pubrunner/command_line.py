@@ -401,6 +401,8 @@ def generateMakeCode(parallelinfo,command,target,dependencies):
 		t += "@OUTDIR_FILES = $(@INDIR_FILES:$(@INDIR_LOC)/%@INFILTER=$(@OUTDIR_LOC)/%)\n"
 		t += "$(@OUTDIR_LOC)/%: $(@INDIR_LOC)/%@INFILTER @DEPENDENCIES\n"
 		t += "\t@COMMAND\n"
+
+		t += "$(@OUTDIR_LOC): $(@OUTDIR_FILES)\n"
 		t += "\ttouch $(@OUTDIR_LOC)\n\n"
 
 		t = t.replace('@INDIR',inDir)
@@ -410,7 +412,7 @@ def generateMakeCode(parallelinfo,command,target,dependencies):
 	 	#t += target + ": " + " ".join(dependencies) + "\n"
 	 	#t += "\t" + command + "\n"
 	 	#t += "\n"
-		t += "@TARGET_FILES = $(@TARGET_LOC)\n"
+		#t += "@TARGET_FILES = $(@TARGET_LOC)\n"
 		t += "$(@TARGET_LOC): @DEPENDENCIES\n"
 		t += "\t@COMMAND\n\n"
 
@@ -420,7 +422,7 @@ def generateMakeCode(parallelinfo,command,target,dependencies):
 
 	depsWithFiles = []
 	for dependency in dependencies:
-		d = "$(@DEP_FILES)".replace('@DEP',dependency)
+		d = "$(@DEP_LOC)".replace('@DEP',dependency)
 		depsWithFiles.append(d)
 	dependencyText = " ".join(depsWithFiles)
 	t = t.replace('@DEPENDENCIES', dependencyText)
