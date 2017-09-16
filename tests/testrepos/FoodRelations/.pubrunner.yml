@@ -20,9 +20,8 @@ resources:
 #        name: PMCOA
 #        format: bioc
 build:
-   - sh buildDiseaseList.sh ?DISEASE_ONTOLOGY ?DISEASE_JSON2
-   - cp ?DISEASE_JSON2 ?DISEASE_JSON
-   - sh buildFoodList.sh ?FOODON ?FOOD_JSON
+   - python generateDiseaseTerms.py --diseaseOntologyFile ?DISEASE_ONTOLOGY/doid.obo --outFile ?DISEASE_JSON
+   - python extractFoodOnTerms.py --owlFiles $FOODON/imports/langual_import.owl,$FOODON/imports/ncbitaxon_import.owl,$FOODON/imports/foodon_product_import.owl,$FOODON/imports/product_type_import.owl --outFile ?FOOD_JSON
 run:
    - parallel:
       - dir: ?PUBMED
