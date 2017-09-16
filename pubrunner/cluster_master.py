@@ -9,6 +9,7 @@ def runLocally(commandsFilename):
 		for command in f:
 			#split = shlex.split(command.strip())
 			command = command.strip()
+			print("Executing: %s" % command)
 			return_code = subprocess.call(command, shell=True)
 			assert return_code == 0, "Command (%s) gave non-zero error (%d)" % (command,return_code)
 			
