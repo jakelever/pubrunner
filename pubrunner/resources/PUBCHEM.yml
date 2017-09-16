@@ -1,0 +1,7 @@
+name: PUBCHEM
+url:
+  - ftp://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-PMID.gz
+  - ftp://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-Synonym-filtered.gz
+type: dir
+unzip: True
+
