@@ -545,6 +545,8 @@ def pubrun(directory,doTest):
 		execCommandsWithTargets.append(commandWithTarget)
 
 	allMakeCode = ""
+	allMakeCode += ".PHONY: default\n"
+	allMakeCode += "default: all\n\n"
 
 	for res in toolSettings["resources"]:
 		resLocation = getResourceLocation(res)
@@ -581,6 +583,11 @@ def pubrun(directory,doTest):
 		print makeCode
 		#print (command,target,dependencies)
 
+	output = toolSettings["output"]
+	makeCode = "\n.PHONY: all\n"
+	makeCode += "all: $(@OUTPUT_LOC)\n\n"
+	makeCode = makeCode.replace("@OUTPUT",output)
+	allMakeCode += makeCode
 
 	with open('Makefile','w') as f:
 		f.write(allMakeCode)
