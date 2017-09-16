@@ -3,7 +3,8 @@ version: 0.1
 mode: complete
 resources:
    all:
-      - DISEASE_ONTOLOGY
+#      - DISEASE_ONTOLOGY
+      - PUBCHEM
       - FOODON
    main:
       - PUBMED:
@@ -20,13 +21,14 @@ resources:
 #        name: PMCOA
 #        format: bioc
 build:
-   - python generateDiseaseTerms.py --diseaseOntologyFile ?DISEASE_ONTOLOGY/doid.obo --outFile ?DISEASE_JSON
+   - python generateChemTerms.py --pubChemPMIDsFile ?PUBCHEM/CID-PMID --pubChemSynonymsFile ?PUBCHEM/CID-Synonym-filtered --outFile ?CHEMICAL_JSON
+#   - python generateDiseaseTerms.py --diseaseOntologyFile ?DISEASE_ONTOLOGY/doid.obo --outFile ?DISEASE_JSON
+#   - python extractFoodOnTerms.py --owlFiles ?FOODON/imports/product_type_import.owl --outFile ?FOOD_JSON
    - python extractFoodOnTerms.py --owlFiles ?FOODON/imports/langual_import.owl,?FOODON/imports/ncbitaxon_import.owl,?FOODON/imports/foodon_product_import.owl,?FOODON/imports/product_type_import.owl --outFile ?FOOD_JSON
 run:
    - parallel:
       - indir: ?PUBMED
       - outdir: ?TMPDIR
-      - python cooccurrenceExtractor.py --biocFile ?INFILE --wordlist1 ?FOOD_JSON --wordlist2 ?DISEASE_JSON --outFile ?OUTFILE
+      - python cooccurrenceExtractor.py --biocFile ?INFILE --wordlist1 ?FOOD_JSON --wordlist2 ?CHEMICAL_JSON --outFile ?OUTFILE
    - python combineCooccurrences.py --inDir ?TMPDIR --outFile ?RESULTFILE
-output:
-   - RESULTFILE
+output: RESULTFILE
