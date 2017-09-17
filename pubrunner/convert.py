@@ -13,7 +13,7 @@ import tempfile
 import bioc
 import pymarc
 
-def marcxml2bioc(record,biocWriter):
+def writeMarcXMLRecordToBiocFile(record,biocWriter):
 	language = record['008'].value().split('|')[17]
 	if language != 'eng':
 		return
@@ -222,7 +222,7 @@ def bioc2txt(biocFilename, txtFilename):
 def marcxml2bioc(marcxmlFilename,biocFilename):
 	with open(marcxmlFilename,'rb') as inF, bioc.iterwrite(biocFilename) as writer:
 		def marcxml2bioc_helper(record):
-			marcxml2bioc(record,writer)
+			writeMarcXMLRecordToBiocFile(record,writer)
 
 		pymarc.map_xml(marcxml2bioc_helper,inF)
 def main():
