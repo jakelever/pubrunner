@@ -15,7 +15,8 @@ import pymarc
 import shutil
 
 def writeMarcXMLRecordToBiocFile(record,biocWriter):
-	language = record['008'].value().split('|')[17]
+	metadata = record['008'].value()
+	language = metadata[35:38]
 	if language != 'eng':
 		return
 
