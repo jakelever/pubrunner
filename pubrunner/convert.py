@@ -12,6 +12,7 @@ from collections import defaultdict
 import tempfile
 import bioc
 import pymarc
+import shutil
 
 def writeMarcXMLRecordToBiocFile(record,biocWriter):
 	language = record['008'].value().split('|')[17]
