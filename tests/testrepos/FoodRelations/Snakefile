@@ -1,0 +1,52 @@
+
+from os import listdir
+
+rule all:
+	input: 'merged.json'
+
+rule FOODON:
+	input:
+		'/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/FOODON'
+	output:
+		'food.json'
+	shell:
+		'python extractFoodOnTerms.py --owlFiles {input}/imports/product_type_import.owl --outFile {output}'
+
+rule DISEASE:
+	input:
+		'/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/DISEASE_ONTOLOGY'
+	output:
+		'disease.json'
+	shell:
+		'python generateDiseaseTerms.py --diseaseOntologyFile {input}/doid.obo --outFile disease.json'
+
+rule PUBMED_TWO_FILES_CONVERT:
+	input:
+		'/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/PUBMED_TWOFILES/{f}.xml'
+	output:
+		'converted/{f}'
+	shell:
+		'pubrunner_convert --i {input} --iFormat pubmedxml --o {output} --oFormat bioc'
+
+rule COOCCURRENCE_STUFF:
+	input:
+		corpus='converted/{f}',
+		food='food.json',
+		disease='disease.json'
+	output:
+		'cooccurrences/{f}'
+	shell:
+		'python cooccurrenceExtractor.py --biocFile {input.corpus} --wordlist1 {input.food} --wordlist2 {input.disease} --outFile {output}'
+
+rule MERGE:
+	input:
+#		'cooccurrences/{f}', dir='cooccurrences'
+#		'cooccurrences'
+#		rules.COOCCURRENCE_STUFF.output
+		["cooccurrences/{fn}".format(fn=fn).replace('.xml','') for fn in listdir('/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/PUBMED_TWOFILES')],
+		dir='cooccurrences'
+	output:
+		'merged.json'
+	shell:
+		'python combineCooccurrences.py --inDir {input.dir} --outFile {output}'
+
