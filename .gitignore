@@ -18,3 +18,5 @@ downloaded/
 .coverage
 
 /.pubrunner.settings.yml
+
+/mypy
