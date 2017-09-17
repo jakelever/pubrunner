@@ -7,15 +7,21 @@ resources:
       - PUBCHEM
       - FOODON
    main:
-      - PUBMED:
-         name: PUBMED
+#      - PUBMED:
+#         name: PUBMED
+#         format: bioc
+      - AGRICOLA:
+         name: AGRICOLA
          format: bioc
 #      - PMCOA:
 #        name: PMCOA
 #        format: bioc
    test:
-      - PUBMED_TWOFILES:
-         name: PUBMED
+#      - PUBMED_TWOFILES:
+#        name: PUBMED
+#        format: bioc
+      - AGRICOLA_TWOFILES:
+         name: AGRICOLA
          format: bioc
 #      - PMCOA_TWOFILES:
 #        name: PMCOA
@@ -27,7 +33,7 @@ build:
    - python extractFoodOnTerms.py --owlFiles ?FOODON/imports/langual_import.owl,?FOODON/imports/ncbitaxon_import.owl,?FOODON/imports/foodon_product_import.owl,?FOODON/imports/product_type_import.owl --outFile ?FOOD_JSON
 run:
    - parallel:
-      - indir: ?PUBMED
+      - indir: ?AGRICOLA
       - outdir: ?TMPDIR
       - python cooccurrenceExtractor.py --biocFile ?INFILE --wordlist1 ?FOOD_JSON --wordlist2 ?CHEMICAL_JSON --outFile ?OUTFILE
    - python combineCooccurrences.py --inDir ?TMPDIR --outFile ?RESULTFILE
