@@ -10,7 +10,7 @@ rule FOODON:
 	output:
 		'food.json'
 	shell:
-		'python extractFoodOnTerms.py --owlFiles {input}/imports/product_type_import.owl --outFile {output}'
+		'python extractFoodOnTerms.py --owlFiles {input}/imports/langual_import.owl,{input}/imports/ncbitaxon_import.owl,{input}/imports/foodon_product_import.owl,{input}/imports/product_type_import.owl --outFile {output}'
 
 rule DISEASE:
 	input:
@@ -20,13 +20,21 @@ rule DISEASE:
 	shell:
 		'python generateDiseaseTerms.py --diseaseOntologyFile {input}/doid.obo --outFile disease.json'
 
-rule PUBMED_TWO_FILES_CONVERT:
+#rule PUBMED_TWO_FILES_CONVERT:
+#	input:
+#		'/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/PUBMED_TWOFILES/{f}.xml'
+#	output:
+#		'converted/{f}'
+#	shell:
+#		'pubrunner_convert --i {input} --iFormat pubmedxml --o {output} --oFormat bioc'
+
+rule AGRICOLA_CONVERT:
 	input:
-		'/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/PUBMED_TWOFILES/{f}.xml'
+		'/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/AGRICOLA/{f}.xml'
 	output:
 		'converted/{f}'
 	shell:
-		'pubrunner_convert --i {input} --iFormat pubmedxml --o {output} --oFormat bioc'
+		'pubrunner_convert --i {input} --iFormat marcxml --o {output} --oFormat bioc'
 
 rule COOCCURRENCE_STUFF:
 	input:
@@ -43,7 +51,7 @@ rule MERGE:
 #		'cooccurrences/{f}', dir='cooccurrences'
 #		'cooccurrences'
 #		rules.COOCCURRENCE_STUFF.output
-		["cooccurrences/{fn}".format(fn=fn).replace('.xml','') for fn in listdir('/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/PUBMED_TWOFILES')],
+		["cooccurrences/{fn}".format(fn=fn).replace('.xml','') for fn in listdir('/projects/bioracle/jake/pubrunnerTmp/.pubrunner/resources/AGRICOLA')],
 		dir='cooccurrences'
 	output:
 		'merged.json'
