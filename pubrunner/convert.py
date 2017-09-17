@@ -212,29 +212,53 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 	    #for document in collection.documents:
 	     #       writer.writedocument(document)
 
+def bioc2txt(biocFilename, txtFilename):
+	with bioc.iterparse(biocFilename) as parser, codecs.open(txtFilename,'w','utf-8') as outF:
+		for biocDoc in parser:
+			for passage in biocDoc.passages:
+				outF.write(passage.text)
+				outF.write("\n\n")
+
+def marcxml2bioc(marcxmlFilename,biocFilename):
+	with open(marcxmlFilename,'rb') as inF, bioc.iterwrite(biocFilename) as writer:
+		def marcxml2bioc_helper(record):
+			marcxml2bioc(record,writer)
+
+		pymarc.map_xml(marcxml2bioc_helper,inF)
 def main():
+	acceptedInFormats = ['bioc','pubmedxml','marcxml']
+	acceptedOutFormats = ['bioc','txt']
+
 	parser = argparse.ArgumentParser(description='Tool to convert corpus between different formats')
 	parser.add_argument('--i',type=str,required=True,help="Document or directory of documents to convert")
-	parser.add_argument('--iFormat',type=str,required=True,help="Format of input corpus")
+	parser.add_argument('--iFormat',type=str,required=True,help="Format of input corpus. Options: %s" % "/".join(acceptedInFormats))
 	parser.add_argument('--o',type=str,required=True,help="Where to store resulting converted docs")
-	parser.add_argument('--oFormat',type=str,required=True,help="Format for output corpus")
+	parser.add_argument('--oFormat',type=str,required=True,help="Format for output corpus. Options: %s" % "/".join(acceptedOutFormats))
 
 	args = parser.parse_args()
 
 	inFormat = args.iFormat.lower()
 	outFormat = args.oFormat.lower()
 
-	assert inFormat in ['pubmedxml','marcxml']
-	assert outFormat in ['bioc']
+	assert inFormat in acceptedInFormats, "%s is not an accepted input format. Options are: %s" % (inFormat, "/".join(acceptedInFormats))
+	assert outFormat in acceptedOutFormats, "%s is not an accepted output format. Options are: %s" % (outFormat, "/".join(acceptedOutFormats))
 
 	print("Starting conversion of %s." % args.i)
-	if inFormat == 'pubmedxml':
-		pubmedxml2bioc(args.i,args.o)
-	elif inFormat == 'marcxml':
-		with open(args.i,'rb') as inF, bioc.iterwrite(args.o) as writer:
-			def marcxml2bioc_helper(record):
-				marcxml2bioc(record,writer)
+	with tempfile.NamedTemporaryFile() as temp:
+		if inFormat == 'bioc':
+			shutil.copyfile(args.i,temp.name)
+		elif inFormat == 'pubmedxml':
+			pubmedxml2bioc(args.i,temp.name)
+		elif inFormat == 'marcxml':
+			marcxml2bioc(args.i,temp.name)
+		else:
+			raise RuntimeError("Unknown input format: %s" % inFormat)
 
-			pymarc.map_xml(marcxml2bioc_helper,inF)
+		if outFormat == 'bioc':
+			shutil.copyfile(temp.name,args.o)
+		elif outFormat == 'txt':
+			bioc2txt(temp.name,args.o)
+		else:
+			raise RuntimeError("Unknown output format: %s" % outFormat)
 	print("Output to %s complete." % args.o)
 
