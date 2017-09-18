@@ -6,7 +6,6 @@ import os
 from os import listdir
 from os.path import isfile, join
 import codecs
-import HTMLParser
 import re
 from collections import defaultdict
 import tempfile
