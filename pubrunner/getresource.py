@@ -34,38 +34,6 @@ def calcSHA256forDir(directory):
 		sha256s[filename] = sha256
 	return sha256s
 
-def ftpDirListing(f):
-	try:
-		tmp = []
-		f.retrlines('MLSD', tmp.append)
-		listings = {}
-		for t in tmp:
-			split = t.split(';')
-			name = split[-1].strip()
-			attributes = [ tuple(a.split('=')) for a in split[0:-1] ]
-			listing = { a:b for a,b in attributes }
-			listings[name] = listing
-	except ftplib.error_perm, resp:
-		if str(resp) == "550 No files found":
-			listings = []
-		else:
-			raise
-
-	return listings
-
-def ftpIsDir(url):
-	url = url.replace("ftp://","")
-	root = url.split('/')[0]
-	parent = "/".join(url.split('/')[1:-1])
-	basename = url.split('/')[-1]
-	ftp = ftplib.FTP(root)
-	ftp.login("anonymous", "ftplib")
-	ftp.cwd(parent)
-	listings = ftpDirListing(ftp)
-	thingType = listings[basename]['type']
-	assert thingType == 'file' or thingType == 'dir'
-	return thingType == 'dir'
-
 def download(url,out):
 	if url.startswith('ftp'):
 		#isDir = ftpIsDir(url)
@@ -145,7 +113,7 @@ def getResource(resource):
 		if isinstance(resourceInfo['url'], six.string_types):
 			urls = [resourceInfo['url']]
 		else:
-		 	urls = resourceInfo['url']
+			urls = resourceInfo['url']
 
 		if os.path.isdir(thisResourceDir):
 			for url in urls:
@@ -153,7 +121,7 @@ def getResource(resource):
 				assert isinstance(url,six.string_types), 'Each URL for the dir resource must be a string'
 				download(url,os.path.join(thisResourceDir,basename))
 		else:
-		 	os.makedirs(thisResourceDir)
+			os.makedirs(thisResourceDir)
 			for url in urls:
 				basename = url.split('/')[-1]
 				assert isinstance(url,six.string_types), 'Each URL for the dir resource must be a string'
