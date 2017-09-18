@@ -222,8 +222,16 @@ def commandToSnakeMake(commandid,command,locationMap):
 
 	return ruleTxt
 
+def generateGetResourceSnakeRule(resources):
+	ruleTxt = 'RULE getResources:\n'
+	ruleTxt += '\tshell:\n'
+	ruleTxt += '\t\t"""\n'
+	for resource in resources:
+		ruleTxt += '\t\t pubrunner --getResource %s\n' % resource 
+	ruleTxt += '\t\t"""\n\n'
+	return ruleTxt
 
-def pubrun(directory,doTest):
+def pubrun(directory,doTest,execute=False):
 	mode = "test" if doTest else "main"
 	settingsYamlFile = findSettingsFile()
 	globalSettings = loadYAML(settingsYamlFile)
@@ -245,13 +253,15 @@ def pubrun(directory,doTest):
 		toolSettings["resources"][mode] = []
 
 	locationMap = processResourceSettings(toolSettings,mode)
-	#print locationMap
 
 	with open(os.path.join(os.path.dirname(__file__),'Snakefile.header')) as f:
 		snakefileHeader = f.read()
 
 	with open('Snakefile','w') as f:
 		f.write(snakefileHeader)
+
+		resourcesSnakeRule = generateGetResourceSnakeRule(toolSettings["resources"])
+		f.write(resourcesSnakeRule)
 
 		commands = toolSettings["build"] + toolSettings["run"]
 		for i,command in enumerate(commands):
