@@ -33,7 +33,7 @@ def removeWeirdBracketsFromOldTitles(titleText):
 	return titleText
 
 # Unescape HTML special characters e.g. &gt; is changed to >
-htmlParser = HTMLParser.HTMLParser()
+htmlParser = HTMLParser()
 def htmlUnescape(text):
 	return htmlParser.unescape(text)
 
