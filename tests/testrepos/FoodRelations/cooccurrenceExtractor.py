@@ -19,8 +19,14 @@ def getID_FromLongestTerm(text, lookupDict):
 			s = tuple(np[i:i+l])
 			# Search for it in the dictionary
 			if s in lookupDict:
+				sTxt = " ".join(np[i:i+l])
+
+				for wordlistid,tid in lookupDict[s]:
+					#myTxt = "%s\t%s" % (tid,sTxt)
+					#terms.add((wordlistid,myTxt))
+					terms.add((wordlistid,sTxt))
 				# If found, save the ID(s) in the dictionar
-				terms.update(lookupDict[s])
+				#terms.update(lookupDict[s])
 				
 				# And blank it out
 				np[i:i+l] = [ "" for _ in range(l) ]
@@ -71,8 +77,8 @@ if __name__ == '__main__':
 				for a,b in itertools.product(term1ids,term2ids):
 					cooccurrences[(a,b)] += 1
 
-		#	if docid > 1000:
-		#		break
+			#if docid > 1000:
+			#	break
 			if (docid % 1000) == 0:
 				print docid
 
