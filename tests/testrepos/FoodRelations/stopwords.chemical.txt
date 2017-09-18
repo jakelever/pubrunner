@@ -86,3 +86,10 @@ at 7
 cohort
 activator
 malate
+insect
+basic
+neutral
+brain
+alpha
+lime
+ozone
