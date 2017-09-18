@@ -105,7 +105,7 @@ def extractTextFromElemList(elemList):
 	
 	return mergedList
 
-def processMedlineFile(pubmedFile,fTitles,fHasTitlesAbstracts,fPubYear,fJournals):
+def processMedlineFile(pubmedFile,fTitles,fHasTitlesAndAbstracts,fPubYear,fJournals):
 	for event, elem in etree.iterparse(pubmedFile, events=('start', 'end', 'start-ns', 'end-ns')):
 		if (event=='end' and elem.tag=='MedlineCitation'):
 			# Find the elements for the PubMed ID, and publication date information
@@ -146,7 +146,7 @@ def processMedlineFile(pubmedFile,fTitles,fHasTitlesAbstracts,fPubYear,fJournals
 			abstract01 = 1 if hasAbstract else 0
 
 			fTitles.write(title + "\n")
-			fHasTitlesAbstracts.write("%d\t%d\n" % (title01,abstract01))
+			fHasTitlesAndAbstracts.write("%d\t%d\n" % (title01,abstract01))
 			fPubYear.write(pubYear + "\n")
 			fJournals.write("%s\t%s\n" % (journalTitle,journalISOTitle))
 
@@ -156,18 +156,18 @@ def main():
 	parser = argparse.ArgumentParser(description='Tool to summarize PubMed XML corpus')
 	parser.add_argument('--i',type=str,required=True,help="Pubmed XML file")
 	parser.add_argument('--oTitles',type=str,required=True,help="File containing article titles")
-	parser.add_argument('--oHasTitlesAbstracts',type=str,required=True,help="File containing counts of titles and abstracts")
+	parser.add_argument('--oHasTitlesAndAbstracts',type=str,required=True,help="File containing counts of titles and abstracts")
 	parser.add_argument('--oPubYear',type=str,required=True,help="File containing counts of publication years")
 	parser.add_argument('--oJournals',type=str,required=True,help="File containing counts of journals")
 
 	args = parser.parse_args()
 
 	fTitles = codecs.open(args.oTitles,'w','utf-8')
-	fHasTitlesAbstracts = codecs.open(args.oHasTitlesAbstracts,'w','utf-8')
+	fHasTitlesAndAbstracts = codecs.open(args.oHasTitlesAndAbstracts,'w','utf-8')
 	fPubYear = codecs.open(args.oPubYear,'w','utf-8')
 	fJournals = codecs.open(args.oJournals,'w','utf-8')
 
-	processMedlineFile(args.i,fTitles,fHasTitlesAbstracts,fPubYear,fJournals)
+	processMedlineFile(args.i,fTitles,fHasTitlesAndAbstracts,fPubYear,fJournals)
 
 if __name__ == '__main__':
 	main()
