@@ -13,6 +13,7 @@ import tempfile
 import bioc
 import pymarc
 import shutil
+import six
 
 def writeMarcXMLRecordToBiocFile(record,biocWriter):
 	metadata = record['008'].value()
@@ -36,11 +37,12 @@ def writeMarcXMLRecordToBiocFile(record,biocWriter):
 
 	offset = 0
 	for textSource in textSources:
-		passage = bioc.BioCPassage()
-		passage.text = textSource
-		passage.offset = offset
-		offset += len(textSource)
-		biocDoc.add_passage(passage)
+		if isinstance(textSource,six.string_types):
+			passage = bioc.BioCPassage()
+			passage.text = textSource
+			passage.offset = offset
+			offset += len(textSource)
+			biocDoc.add_passage(passage)
 
 	biocWriter.writedocument(biocDoc)
 
