@@ -1,0 +1,18 @@
+name: FoodRelations
+version: 0.1
+mode: incremental
+resources:
+   main:
+      - PUBMED
+      - AGRICOLA
+   test:
+      - PUBMED_TWOFILES:
+           rename: PUBMED
+      - AGRICOLA_TWOFILES:
+           rename: AGRICOLA
+run:
+   - python summarizePubmedXML.py --i {IN:PUBMED/*.xml} --oTitles {OUT:TITLES/*.xml} --oHasTitlesAndAbstracts {OUT:HASTITLESANDABSTRACTS/*} --oPubYear {OUT:PUBYEAR/*} --oJournals {OUT:JOURNAL/*}
+   - python summarizeMarcXML.py --i {IN:AGRICOLA/*.xml} --oTitles {OUT:TITLES/*.xml} --oHasTitlesAndAbstracts {OUT:HASTITLESANDABSTRACTS/*} --oPubYear {OUT:PUBYEAR/*} --oJournals {OUT:JOURNAL/*}
+#   - python combineCooccurrences.py --inDir {IN:TMPDIR} --outFile {OUT:RESULTS.TXT}
+output: TITLES
+
