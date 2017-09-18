@@ -7,23 +7,20 @@ resources:
       - FOODON
    main:
       - PUBMED:
-         name: PUBMED
          format: bioc
       - AGRICOLA:
-         name: AGRICOLA
          format: bioc
       - PMCOA:
-        name: PMCOA
         format: bioc
    test:
       - PUBMED_TWOFILES:
-        name: PUBMED
+        rename: PUBMED
         format: bioc
       - AGRICOLA_TWOFILES:
-         name: AGRICOLA
-         format: bioc
+        rename: AGRICOLA
+        format: bioc
       - PMCOA_TWOFILES:
-        name: PMCOA
+        rename: PMCOA
         format: bioc
 build:
    - python generateChemTerms.py --pubChemPMIDsFile {PUBCHEM}/CID-PMID --pubChemSynonymsFile {PUBCHEM}/CID-Synonym-filtered --outFile {CHEMICAL.JSON}
