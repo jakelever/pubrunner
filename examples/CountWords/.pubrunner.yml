@@ -11,4 +11,5 @@ resources:
       - PUBMED_TWOFILES:
          name: PUBMED
 run:
-   - python CountWords.py -i $PUBMED -o $OUTPUTDIR
+   - python CountWords.py -i {PUBMED} -o {OUTPUTDIR}
+output: OUTPUTDIR
