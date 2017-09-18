@@ -54,7 +54,7 @@ def getResourceInfo(resource):
 def makeLocation(toolname,name,createDir=False):
 	globalSettings = pubrunner.getGlobalSettings()
 	workspaceDir = globalSettings["storage"]["workspace"]
-	thisDir = os.path.join(workspaceDir,name)
+	thisDir = os.path.join(workspaceDir,toolname,name)
 	if createDir and not os.path.isdir(thisDir):
 		os.makedirs(thisDir)
 	return thisDir
