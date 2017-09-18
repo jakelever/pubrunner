@@ -1,3 +1,6 @@
+storage:
+   resources: ~/pubrunner/resources
+   workspace: ~/pubrunner/workspace
 upload:
    local-directory:
-      path: ~/out
+      path: ~/pubrunner/out
