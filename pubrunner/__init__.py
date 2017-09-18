@@ -23,7 +23,11 @@ def findSettingsFile():
 			return settingsPath
 	raise RuntimeError("Unable to find .pubrunner.settings.yml file. Tried current directory first, then home directory")
 
+globalSettings = None
 def getGlobalSettings():
-	settingsYamlFile = findSettingsFile()
-	globalSettings = loadYAML(settingsYamlFile)
+	global globalSettings
+	if globalSettings is None:
+		settingsYamlFile = findSettingsFile()
+		globalSettings = loadYAML(settingsYamlFile)
+
 	return globalSettings

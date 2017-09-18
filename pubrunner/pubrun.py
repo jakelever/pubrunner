@@ -71,7 +71,7 @@ def processResourceSettings(toolSettings,mode):
 				assert len(resName.items()) == 1
 
 				# TODO: Rename resSettings and resInfo to be more meaningful
-				resName,resSettings = resName.items()[0]
+				resName,resSettings = list(resName.items())[0]
 				resInfo = getResourceInfo(resName)
 
 				allowed = ['rename','format']
@@ -108,7 +108,7 @@ def processResourceSettings(toolSettings,mode):
 	toolSettings["build"] = preprocessingCommands + toolSettings["build"]
 	return locationMap
 
-def commandToSnakeMake(ruleName,command,locationMap):
+def commandToSnakeMake(toolName,ruleName,command,locationMap):
 	variables = extractVariables(command)
 
 	inputs = []
@@ -139,7 +139,7 @@ def commandToSnakeMake(ruleName,command,locationMap):
 		assert var.count('*') <= 1, "Cannot have more than one wildcard in variable: %s" % var
 
 		if not varname in locationMap:
-			locationMap[varname] = makeLocation(varname)
+			locationMap[varname] = makeLocation(toolName,varname)
 		loc = locationMap[varname]
 		loc = os.path.relpath(loc)
 
@@ -164,6 +164,9 @@ def commandToSnakeMake(ruleName,command,locationMap):
 		elif vartype == 'OUT' and pattern:
 			if not firstOutputPattern:
 				firstOutputPattern = loc + '/' + pattern
+
+			# Make sure the directory is created
+			makeLocation(toolName,varname,createDir=True)
 
 			snakepattern = loc + '/' + pattern.replace('*','{f}')
 			outputs.append((repname,snakepattern))
@@ -224,8 +227,8 @@ def pubrun(directory,doTest,execute=False):
 	if not os.path.isfile(toolYamlFile):
 		raise RuntimeError("Expected a .pubrunner.yml file in root of codebase")
 
-	toolSettings = loadYAML(toolYamlFile)
-	#print(json.dumps(toolSettings,indent=2))
+	toolSettings = pubrunner.loadYAML(toolYamlFile)
+	toolName = toolSettings["name"]
 	
 	if not "build" in toolSettings:
 		toolSettings["build"] = []
@@ -249,7 +252,7 @@ def pubrun(directory,doTest,execute=False):
 		commands = toolSettings["build"] + toolSettings["run"]
 		for i,command in enumerate(commands):
 			ruleName = "RULE_%d" % (i+1)
-			snakecode = commandToSnakeMake(ruleName, command,locationMap)
+			snakecode = commandToSnakeMake(toolName, ruleName, command,locationMap)
 			f.write(snakecode + "\n")
 	print("Completed Snakefile")
 
