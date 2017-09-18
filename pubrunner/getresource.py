@@ -111,29 +111,7 @@ def gunzip(source,dest,deleteSource=False):
 
 	if deleteSource:
 		os.unlink(source)
-
-def getResourceLocation(resource):
-	#homeDir = os.path.expanduser("~")
-	homeDir = '/projects/bioracle/jake/pubrunnerTmp'
-	baseDir = os.path.join(homeDir,'.pubrunner')
-	thisResourceDir = os.path.join(baseDir,'resources',resource)
-	return thisResourceDir
-
-def getResourceInfo(resource):
-	packagePath = os.path.dirname(pubrunner.__file__)
-	resourceYamlPath = os.path.join(packagePath,'resources','%s.yml' % resource)
-	with open(resourceYamlPath) as f:
-		resourceInfo = yaml.load(f)
-
-	return resourceInfo
-
-def makeLocation(name,createDir=False):
-	homeDir = '/projects/bioracle/jake/pubrunnerTmp'
-	baseDir = os.path.join(homeDir,'.pubrunner')
-	thisDir = os.path.join(baseDir,'workingDir',name)
-	if createDir and not os.path.isdir(thisDir):
-		os.makedirs(thisDir)
-	return thisDir
+	
 
 def getResource(resource):
 	print("Fetching resource: %s" % resource)

@@ -1,0 +1,11 @@
+import glob
+import re
+
+def predictOutputFiles(inPattern,outPattern):
+	outfiles = []
+	for potentialInputFiles in glob.glob(inPattern):
+		wildcardValue = re.match(inPattern.replace('*','(.*)'), potentialInputFiles).groups()[0]
+		potentialOutputFile = outPattern.replace('*',wildcardValue)
+		outfiles.append(potentialOutputFile)
+	return outfiles
+

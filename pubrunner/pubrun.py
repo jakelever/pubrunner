@@ -22,6 +22,7 @@ import ftplib
 import ftputil
 from collections import OrderedDict
 import re
+import glob
 
 def loadYAML(yamlFilename):
 	yamlData = None
@@ -43,60 +44,184 @@ def findSettingsFile():
 
 def extractVariables(command):
 	assert isinstance(command,six.string_types)
-	regex = re.compile("\?[A-Za-z_0-9]*")
+	#regex = re.compile("\?[A-Za-z_0-9]*")
+	regex = re.compile("\{\S*\}")
 	variables = []
 	for m in regex.finditer(command):
-		var = ( m.start(), m.end(), m.group()[1:] )
+		var = ( m.start(), m.end(), m.group()[1:-1] )
 		variables.append(var)
 	variables = sorted(variables,reverse=True)
 	return variables
 
-def dealWithResourceSettings(toolSettings,mode):
+
+def getResourceLocation(resource):
+	#homeDir = os.path.expanduser("~")
+	homeDir = '/projects/bioracle/jake/pubrunnerTmp'
+	baseDir = os.path.join(homeDir,'.pubrunner')
+	thisResourceDir = os.path.join(baseDir,'resources',resource)
+	return thisResourceDir
+
+def getResourceInfo(resource):
+	packagePath = os.path.dirname(pubrunner.__file__)
+	resourceYamlPath = os.path.join(packagePath,'resources','%s.yml' % resource)
+	with open(resourceYamlPath) as f:
+		resourceInfo = yaml.load(f)
+
+	return resourceInfo
+
+def makeLocation(name,createDir=False):
+	homeDir = '/projects/bioracle/jake/pubrunnerTmp'
+	baseDir = os.path.join(homeDir,'.pubrunner')
+	thisDir = os.path.join(baseDir,'workingDir',name)
+	if createDir and not os.path.isdir(thisDir):
+		os.makedirs(thisDir)
+	return thisDir
+
+def processResourceSettings(toolSettings,mode):
+	locationMap = {}
+
 	newResourceList = []
 	preprocessingCommands = []
-	renameMap = {}
 	for resourceGroupName in ["all",mode]:
 		for resName in toolSettings["resources"][resourceGroupName]:
 			if isinstance(resName,dict):
 				assert len(resName.items()) == 1
 
+				# TODO: Rename resSettings and resInfo to be more meaningful
 				resName,resSettings = resName.items()[0]
-	
 				resInfo = getResourceInfo(resName)
-				fromFormat = resInfo["format"]
 
-				if "name" in resSettings:
-					rename = resSettings["name"]
-					renameMap[rename] = resName + "_CONVERTED"
+				allowed = ['rename','format']
+				for k in resSettings.keys():
+					assert k in allowed, "Unexpected attribute (%s) for resource %s" % (k,resName)
+
+				nameToUse = resName
+				if "rename" in resSettings:
+					nameToUse = resSettings["rename"]
+
 				if "format" in resSettings:
-					toFormat = resSettings["format"]
-					parallelInfo = {'indir':'?'+resName, 'outdir':"?"+resName+"_CONVERTED", 'filter':resInfo["filter"]}
-					command = "pubrunner_convert --i ?INFILE --iFormat "+fromFormat+" --o ?OUTFILE --oFormat "+toFormat
-					preprocessingCommands.append( (parallelInfo, command) )
+					inDir = nameToUse + "_UNCONVERTED"
+					inFormat = resInfo["format"]
+					inFilter = resInfo["filter"]
+					outDir = nameToUse
+					outFormat = resSettings["format"]
+
+					command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*.converted} --oFormat %s" % (inDir,inFilter,inFormat,outDir,outFormat)
+					preprocessingCommands.append( command )
+
+					locationMap[nameToUse+"_UNCONVERTED"] = getResourceLocation(resName)
+					locationMap[nameToUse] = makeLocation(resName+"_CONVERTED")
+				else:
+					locationMap[nameToUse] = getResourceLocation(resName)
+					
+
 				newResourceList.append(resName)
 			else:
+				locationMap[resName] = getResourceLocation(resName)
 				newResourceList.append(resName)
 
-		#newResources[resourceGroupName] = newResourceList
 	toolSettings["resources"] = newResourceList
 
 	toolSettings["build"] = preprocessingCommands + toolSettings["build"]
+	return locationMap
+
+def commandToSnakeMake(commandid,command,locationMap):
+	variables = extractVariables(command)
+
+	inputs = []
+	outputs = []
+	dirsToTouch = []
+	newCommand = command
+
+	firstInputPattern,firstOutputPattern = None,None
+	hasWildcard = False
+
+	for startPos,endPos,var in variables:
+		#isIn = var.startswith('IN:')
+		#isOut = var.startswith('OUT:')
+		#assert isIn or isOut
+		#split = var.split(':')
+		#asset len(split) == 2
+		#var = split[1]
+
+		#m = re.match("IN:[A-Za-z0-9.]*", var)
+		m = re.match("(?P<vartype>IN|OUT):(?P<varname>[A-Za-z0-9_\.]*)(/(?P<pattern>[A-Za-z0-9_\.\*]*))?", var)
+		if not m:
+			raise RuntimeError("Unable to parse variable: %s" % var)
+		mDict = m.groupdict()
+		vartype = mDict['vartype']
+		varname = mDict['varname']
+		pattern = mDict['pattern'] if 'pattern' in mDict else None
+
+		assert var.count('*') <= 1, "Cannot have more than one wildcard in variable: %s" % var
+
+		if not varname in locationMap:
+			locationMap[varname] = makeLocation(varname)
+		loc = locationMap[varname]
+		loc = os.path.relpath(loc)
+
+		if pattern:
+			hasWildcard = True
+
+		repname = varname + str(startPos)
+		if vartype == 'IN' and not pattern:
+			inputs.append((repname,loc))
+		elif vartype == 'OUT' and not pattern:
+			if not firstOutputPattern:
+				firstOutputPattern = loc
+
+			outputs.append((repname,loc))
+			dirsToTouch.append(loc)
+		elif vartype == 'IN' and pattern:
+			if not firstInputPattern:
+				firstInputPattern = loc + '/' + pattern
+
+			snakepattern = loc + '/' + pattern.replace('*','{f}')
+			inputs.append((repname,snakepattern))
+		elif vartype == 'OUT' and pattern:
+			if not firstOutputPattern:
+				firstOutputPattern = loc + '/' + pattern
+
+			snakepattern = loc + '/' + pattern.replace('*','{f}')
+			outputs.append((repname,snakepattern))
+			dirsToTouch.append(loc)
+
+		if vartype == 'IN':
+			newCommand = newCommand[:startPos] + '{input.%s}' % repname + newCommand[endPos:]
+		elif vartype == 'OUT':
+			newCommand = newCommand[:startPos] + '{output.%s}' % repname + newCommand[endPos:]
+
+	ruleName = "COMMAND_%d" % commandid
+
+	ruleTxt = ""
+	ruleTxt += "rule %s_ACTIONS:\n" % ruleName
+	ruleTxt += "\tinput:\n"
+	#ruleTxt += "\t\tINPUTS\n"
+	for i,(name,pattern) in enumerate(inputs):
+		comma = "" if i+1 == len(inputs) else ","
+		ruleTxt += "\t\t%s='%s'%s\n" % (name,pattern,comma)
+	ruleTxt += "\toutput:\n"
+	#ruleTxt += "\t\tOUTPUTS\n"
+	for i,(name,pattern) in enumerate(outputs):
+		comma = "" if i+1 == len(outputs) else ","
+		ruleTxt += "\t\t%s='%s'%s\n" % (name,pattern,comma)
+	ruleTxt += "\tshell:\n"
+	ruleTxt += '\t\t"""\n'
+	ruleTxt += "\t\t%s\n" % newCommand
+	for dirToTouch in dirsToTouch:
+		ruleTxt += "\t\ttouch %s\n" % dirToTouch
+	ruleTxt += '\t\t"""\n'
 	
-	for execList in ["build","run"]:
-		assert isinstance(toolSettings[execList],list)
-		for i in range(len(toolSettings[execList])):
-			parallelinfo,command = toolSettings[execList][i]
-			variables = extractVariables(command)
-			for startPos,endPos,v in variables:
-				if v in renameMap:
-					command = command[:startPos] + "$("+renameMap[v]+"_LOC)" + command[endPos:]
+	ruleTxt += "\n"
+	if hasWildcard:
+		ruleTxt += "%s_EXPECTED_FILES = predictOutputFiles('%s','%s')\n" % (ruleName,firstInputPattern,firstOutputPattern)
+	else:
+		ruleTxt += "%s_EXPECTED_FILES = ['%s']\n" % (ruleName,firstOutputPattern)
+	ruleTxt += "rule %s:\n" % ruleName
+	ruleTxt += "\tinput: %s_EXPECTED_FILES\n" % ruleName
 
-			if isinstance(parallelinfo,dict) and "indir" in parallelinfo:
-				dirname = parallelinfo['indir'].lstrip('?')
-				if dirname in renameMap:
-					parallelinfo['indir'] = '?'+renameMap[dirname]
+	return ruleTxt
 
-			toolSettings[execList][i] = (parallelinfo,command)
 
 def pubrun(directory,doTest):
 	mode = "test" if doTest else "main"
@@ -110,7 +235,7 @@ def pubrun(directory,doTest):
 		raise RuntimeError("Expected a .pubrunner.yml file in root of codebase")
 
 	toolSettings = loadYAML(toolYamlFile)
-	print(json.dumps(toolSettings,indent=2))
+	#print(json.dumps(toolSettings,indent=2))
 	
 	if not "build" in toolSettings:
 		toolSettings["build"] = []
@@ -119,200 +244,23 @@ def pubrun(directory,doTest):
 	if not mode in toolSettings["resources"]:
 		toolSettings["resources"][mode] = []
 
-	toolSettings["build"] = transformParallelCommands(toolSettings["build"])
-	toolSettings["run"] = transformParallelCommands(toolSettings["run"])
+	locationMap = processResourceSettings(toolSettings,mode)
+	#print locationMap
 
-	dealWithResourceSettings(toolSettings,mode)
-	#print(json.dumps(toolSettings,indent=2))
-	#sys.exit(0)
+	with open(os.path.join(os.path.dirname(__file__),'Snakefile.header')) as f:
+		snakefileHeader = f.read()
 
-	execCommands = toolSettings["build"] + toolSettings["run"]
-	execCommandsWithTargets = []
+	with open('Snakefile','w') as f:
+		f.write(snakefileHeader)
 
-	alltargets = set(toolSettings["resources"])
-	for parallelinfo,command in execCommands:
-		variables = extractVariables(command)
-		thisDependencies = set()
-		thisTarget = None
+		commands = toolSettings["build"] + toolSettings["run"]
+		for i,command in enumerate(commands):
+			snakecode = commandToSnakeMake(i+1, command,locationMap)
+			f.write(snakecode + "\n")
 
-
-		for startPos,endPos,v in variables:
-			if v == 'INFILE' or v == "OUTFILE":
-				continue
-			#if isinstance(parallelinfo,dict):
-				#assert False, v
-			#	continue
-
-			if v in alltargets:
-				thisDependencies.add(v)
-			else:
-				assert thisTarget is None, 'Only one target per command. Already got %s and now got %s for command: %s' % (thisTarget,v,command) 
-				thisTarget = v
-				alltargets.add(v)
-		
-		if not isinstance(parallelinfo,dict):
-		#	alltargets.add(parallelinfo["outdir"].lstrip('?'))
-
-			print alltargets
-			assert not thisTarget is None, "Couldn't find target in command: %s" % command
-		else:
-			alltargets.add(parallelinfo["outdir"].lstrip('?'))
-			
-
-		commandWithTarget = (parallelinfo,command,thisTarget,list(thisDependencies))
-		execCommandsWithTargets.append(commandWithTarget)
-
-	allMakeCode = ""
-	allMakeCode += ".PHONY: default\n"
-	allMakeCode += "default: all\n\n"
-
-	for res in toolSettings["resources"]:
-		resLocation = getResourceLocation(res)
-		resInfo = getResourceInfo(res)
-		resFilter = resInfo["filter"] if "filter" in resInfo else ""
-		makeCode = "@RESOURCE_LOC = @RESLOCATION\n"
-		makeCode += "@RESOURCE_FILES := $(wildcard $(@RESOURCE_LOC)/*@RESFILTER)\n"
-		makeCode += "@RESOURCE:\n"
-		makeCode += "\tpubrunner --getResource @RESOURCE\n"
-		makeCode = makeCode.replace("@RESOURCE",res)
-		makeCode = makeCode.replace("@RESLOCATION",resLocation)
-		makeCode = makeCode.replace("@RESFILTER",resFilter)
-
-		allMakeCode += makeCode + "\n"
-		print makeCode
-
-	for target in alltargets:
-		if target in toolSettings["resources"]:
-			continue
-
-		targetLocation = makeLocation(target)
-		makeCode = "@TARGET_LOC = @TARGETLOCATION\n"
-		makeCode = makeCode.replace("@TARGETLOCATION",targetLocation)
-		makeCode = makeCode.replace("@TARGET",target)
-		allMakeCode += makeCode + "\n"
-		print makeCode
-
-
-	#print(json.dumps(execCommandsWithTargets,indent=2))
-	for parallelinfo,command,target,dependencies in execCommandsWithTargets:
-		#makeCode = generateMakeCode(parallelinfo,command,target,dependencies)
-		makeCode = generateParallelMakeCode(parallelinfo,command,target,dependencies)
-		allMakeCode += makeCode + "\n"
-		print makeCode
-		#print (command,target,dependencies)
-
-	output = toolSettings["output"]
-	makeCode = "\n.PHONY: all\n"
-	makeCode += "all: $(@OUTPUT_LOC)\n\n"
-	makeCode = makeCode.replace("@OUTPUT",output)
-	allMakeCode += makeCode
-
-	with open('Makefile','w') as f:
-		f.write(allMakeCode)
-	sys.exit(0)
-
-	for parallelinfo, command, target, dependencies in execCommands:
-		if isinstance(parallelinfo,dict):
-			inDir = parallelinfo['indir']
-			inFilter = parallelinfo['filter']
-			outDir = parallelinfo['outdir']
-			
-
-	print(json.dumps(toolSettings,indent=2))
 
 	sys.exit(0)
 
-	print("Getting resources")
-	resourceMap = {}
-	resources = toolSettings["resources"]["all"] + toolSettings["resources"][mode]
-
-	makeCommands = OrderedDict()
-	makeDefinitions = []
-	locations = {}
-
-	#variableRenameTracker = {}
-
-	for r in resources:
-		if isinstance(r,dict):
-			actualName,otherStuff = r.items()[0]
-			rename = actualName
-			if "name" in otherStuff:
-				rename = otherStuff["name"]
-			#locations[rename] = getResource(actualName)[0]
-			resLocation = getResourceLocation(actualName)
-			resInfo = getResourceInfo(actualName)
-			fromFilter = resInfo["filter"] if "filter" in resInfo else ""
-
-			if "format" in otherStuff:
-				assert "format" in resInfo, "Format is not defined for resource (%s). Cannot convert it to something else" % actualName
-
-
-				fromFormat = resInfo["format"]
-				toFormat = otherStuff["format"]
-
-				locations[rename+"_UNCONVERTED"] = resLocation
-				makeCommands[rename+"_UNCONVERTED"] = ([],"pubrunner --getResource %s #--out %s" % (actualName,resLocation))
-				makeDefinitions.append( (rename+"_UNCONVERTED_LOC", resLocation) )
-				makeDefinitions.append( (rename+"_UNCONVERTED_FILES", "$(wildcard $("+rename+"_UNCONVERTED_LOC)/*."+fromFilter+")" ) )
-
-				convertedLocation = makeLocation(rename+"_CONVERTED_"+toFormat,createDir=True)
-				locations[rename] = convertedLocation
-				wildcard = "$(" + rename + '_LOC)/%'
-				makeCommands[wildcard] = (["$(%s_UNCONVERTED_FILES)" % rename],"pubrunner_convert --i $< --iFormat "+fromFormat+" --o $@ --oFormat "+toFormat)
-				makeDefinitions.append( (rename+"_LOC", convertedLocation) )
-				makeDefinitions.append( (rename+"_FILES", "$("+rename+"_UNCONVERTED_FILES)/%"+fromFilter+"="+wildcard+")" ))
-			else:
-				makeCommands[rename] = ([],"pubrunner --getResource %s #--out %s" % (actualName,resLocation))
-				locations[rename] = resLocation
-				makeDefinitions.append( (rename+"_LOC", resLocation) )
-				makeDefinitions.append( (rename+"_FILES", "$(wildcard $("+rename+"_LOC)/*"+fromFilter+")" ) )
-			
-		else:
-			#locations[r] = getResource(r)[0]
-			resLocation = getResourceLocation(r)
-			resInfo = getResourceInfo(r)
-			fromFilter = resInfo["filter"] if "filter" in resInfo else ""
-
-			makeCommands[r] = ([],"pubrunner --getResource %s #--out %s" % (r,resLocation))
-			locations[r] = resLocation
-			makeDefinitions.append( (r+"_LOC", resLocation) )
-			makeDefinitions.append( (r+"_FILES", "$(wildcard $("+r+"_LOC)/*"+fromFilter+")" ) )
-
-
-	if not "build" in toolSettings:
-		toolSettings["build"] = []
-
-	print("Running build")
-	#commandSet.append(('build',toolSettings["build"]))
-	for command in toolSettings["build"]:
-		#print command
-		variables = extractVariables(command)
-		dependencies = []
-		targets = []
-		#print variables
-		for startPos,endPos,v in variables:
-			if v in locations:
-				#dependencies.append(locations[v])
-				#dependencies.append(v)
-				dependencies.append("$("+v+"_FILES)")
-			else:
-			 	locations[v] = makeLocation(v)
-				makeDefinitions.append( (v+"_LOC", locations[v]) )
-				targets.append("$("+v+"_LOC)")
-			#command = command[:startPos] + locations[v] + command[endPos:]
-			command = command[:startPos] + "$("+v+"_LOC)" + command[endPos:]
-
-		touchCommand = "touch $("+v+"_LOC)"
-
-		#print 'X', targets, dependencies, command
-		assert len(targets) == 1, "Each command is expected to generate ONE new output file/dir"
-		makeCommands[targets[0]] = (dependencies,[command,touchCommand])
-		#print variables
-
-	createMakeFile('Makefile',makeDefinitions,makeCommands)
-	sys.exit(0)
-
-	print json.dumps(makeCommands,indent=2)
 
 	print("Running tool")
 	#outputDir = tempfile.mkdtemp()
