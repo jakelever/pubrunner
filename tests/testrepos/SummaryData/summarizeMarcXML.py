@@ -44,7 +44,9 @@ def summarizeMarcXMLFile(record,fTitles,fTitlesAndAbstracts,fPubYear,fJournals):
 
 	pubyear = "Unknown"
 	if not pubdate is None:
-		pubyear = re.findall('[12][0-9]{3}', pubdate)[0]
+		pubyearSearch = re.findall('[12][0-9]{3}', pubdate)
+		if len(pubyearSearch) == 1:
+			pubyear = pubyearSearch[0]
 
 	if journal is None:
 		journal = "Unknown"
