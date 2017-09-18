@@ -24,23 +24,6 @@ from collections import OrderedDict
 import re
 import glob
 
-def loadYAML(yamlFilename):
-	yamlData = None
-	with open(yamlFilename,'r') as f:
-		try:
-			yamlData = yaml.load(f)
-		except yaml.YAMLError as exc:
-			print(exc)
-			raise
-	return yamlData
-
-def findSettingsFile():
-	possibilities = [ os.getcwd(), os.path.expanduser("~") ]
-	for directory in possibilities:
-		settingsPath = os.path.join(directory,'.pubrunner.settings.yml')
-		if os.path.isfile(settingsPath):
-			return settingsPath
-	raise RuntimeError("Unable to find .pubrunner.settings.yml file. Tried current directory first, then home directory")
 
 def extractVariables(command):
 	assert isinstance(command,six.string_types)
@@ -229,10 +212,11 @@ def generateGetResourceSnakeRule(resources):
 	ruleTxt += '\t\t"""\n\n'
 	return ruleTxt
 
+
 def pubrun(directory,doTest,execute=False):
 	mode = "test" if doTest else "main"
-	settingsYamlFile = findSettingsFile()
-	globalSettings = loadYAML(settingsYamlFile)
+
+	globalSettings = getGlobalSettings()
 
 	os.chdir(directory)
 
