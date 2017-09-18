@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
 	args = parser.parse_args()
 
-	#processMedlineFolder(args.i,args.o)
-	with open(os.path.join(args.o,'test'),'w') as outF:
-		outF.write("\n".join(map(str,range(100))))
+	if not os.path.isdir(args.o):
+		os.makedirs(args.o)
 
+	processMedlineFolder(args.i,args.o)

@@ -5,11 +5,10 @@ resources:
    all:
       - FOODON
    main:
-      - PUBMED:
-         name: PUBMED
+      - PUBMED
    test:
       - PUBMED_TWOFILES:
-         name: PUBMED
+         rename: PUBMED
 run:
-   - python CountWords.py -i {PUBMED} -o {OUTPUTDIR}
+   - python CountWords.py -i {IN:PUBMED} -o {OUT:OUTPUTDIR}
 output: OUTPUTDIR
