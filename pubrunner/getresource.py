@@ -116,10 +116,9 @@ def gunzip(source,dest,deleteSource=False):
 def getResource(resource):
 	print("Fetching resource: %s" % resource)
 
-	#homeDir = os.path.expanduser("~")
-	homeDir = '/projects/bioracle/jake/pubrunnerTmp'
-	baseDir = os.path.join(homeDir,'.pubrunner')
-	thisResourceDir = os.path.join(baseDir,'resources',resource)
+	globalSettings = pubrunner.getGlobalSettings()
+	resourceDir = globalSettings["storage"]["resources"]
+	thisResourceDir = os.path.join(resourceDir,resource)
 
 	packagePath = os.path.dirname(pubrunner.__file__)
 	resourceYamlPath = os.path.join(packagePath,'resources','%s.yml' % resource)

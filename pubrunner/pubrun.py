@@ -38,10 +38,9 @@ def extractVariables(command):
 
 
 def getResourceLocation(resource):
-	#homeDir = os.path.expanduser("~")
-	homeDir = '/projects/bioracle/jake/pubrunnerTmp'
-	baseDir = os.path.join(homeDir,'.pubrunner')
-	thisResourceDir = os.path.join(baseDir,'resources',resource)
+	globalSettings = pubrunner.getGlobalSettings()
+	resourceDir = globalSettings["storage"]["resources"]
+	thisResourceDir = os.path.join(resourceDir,resource)
 	return thisResourceDir
 
 def getResourceInfo(resource):
@@ -52,15 +51,16 @@ def getResourceInfo(resource):
 
 	return resourceInfo
 
-def makeLocation(name,createDir=False):
-	homeDir = '/projects/bioracle/jake/pubrunnerTmp'
-	baseDir = os.path.join(homeDir,'.pubrunner')
-	thisDir = os.path.join(baseDir,'workingDir',name)
+def makeLocation(toolname,name,createDir=False):
+	globalSettings = pubrunner.getGlobalSettings()
+	workspaceDir = globalSettings["storage"]["workspace"]
+	thisDir = os.path.join(workspaceDir,name)
 	if createDir and not os.path.isdir(thisDir):
 		os.makedirs(thisDir)
 	return thisDir
 
 def processResourceSettings(toolSettings,mode):
+	toolName = toolSettings['name']
 	locationMap = {}
 
 	newResourceList = []
@@ -93,7 +93,7 @@ def processResourceSettings(toolSettings,mode):
 					preprocessingCommands.append( command )
 
 					locationMap[nameToUse+"_UNCONVERTED"] = getResourceLocation(resName)
-					locationMap[nameToUse] = makeLocation(resName+"_CONVERTED")
+					locationMap[nameToUse] = makeLocation(toolName,resName+"_CONVERTED")
 				else:
 					locationMap[nameToUse] = getResourceLocation(resName)
 					
@@ -216,7 +216,7 @@ def generateGetResourceSnakeRule(resources):
 def pubrun(directory,doTest,execute=False):
 	mode = "test" if doTest else "main"
 
-	globalSettings = getGlobalSettings()
+	globalSettings = pubrunner.getGlobalSettings()
 
 	os.chdir(directory)
 
