@@ -1,40 +1,36 @@
 name: FoodRelations
 version: 0.1
-mode: complete
+mode: incremental
 resources:
    all:
-#      - DISEASE_ONTOLOGY
       - PUBCHEM
       - FOODON
    main:
-#      - PUBMED:
-#         name: PUBMED
-#         format: bioc
+      - PUBMED:
+         name: PUBMED
+         format: bioc
       - AGRICOLA:
          name: AGRICOLA
          format: bioc
-#      - PMCOA:
-#        name: PMCOA
-#        format: bioc
+      - PMCOA:
+        name: PMCOA
+        format: bioc
    test:
-#      - PUBMED_TWOFILES:
-#        name: PUBMED
-#        format: bioc
+      - PUBMED_TWOFILES:
+        name: PUBMED
+        format: bioc
       - AGRICOLA_TWOFILES:
          name: AGRICOLA
          format: bioc
-#      - PMCOA_TWOFILES:
-#        name: PMCOA
-#        format: bioc
+      - PMCOA_TWOFILES:
+        name: PMCOA
+        format: bioc
 build:
-   - python generateChemTerms.py --pubChemPMIDsFile ?PUBCHEM/CID-PMID --pubChemSynonymsFile ?PUBCHEM/CID-Synonym-filtered --outFile ?CHEMICAL_JSON
-#   - python generateDiseaseTerms.py --diseaseOntologyFile ?DISEASE_ONTOLOGY/doid.obo --outFile ?DISEASE_JSON
-#   - python extractFoodOnTerms.py --owlFiles ?FOODON/imports/product_type_import.owl --outFile ?FOOD_JSON
-   - python extractFoodOnTerms.py --owlFiles ?FOODON/imports/langual_import.owl,?FOODON/imports/ncbitaxon_import.owl,?FOODON/imports/foodon_product_import.owl,?FOODON/imports/product_type_import.owl --outFile ?FOOD_JSON
+   - python generateChemTerms.py --pubChemPMIDsFile {PUBCHEM}/CID-PMID --pubChemSynonymsFile {PUBCHEM}/CID-Synonym-filtered --outFile {CHEMICAL.JSON}
+   - python extractFoodOnTerms.py --owlFiles {FOODON}/imports/langual_import.owl,{FOODON}/imports/ncbitaxon_import.owl,{FOODON}/imports/foodon_product_import.owl,?FOODON/imports/product_type_import.owl --outFile {FOOD.JSON}
 run:
-   - parallel:
-      - indir: ?AGRICOLA
-      - outdir: ?TMPDIR
-      - python cooccurrenceExtractor.py --biocFile ?INFILE --wordlist1 ?FOOD_JSON --wordlist2 ?CHEMICAL_JSON --outFile ?OUTFILE
-   - python combineCooccurrences.py --inDir ?TMPDIR --outFile ?RESULTFILE
-output: RESULTFILE
+   - mkdir {TMPDIR}
+   - python cooccurrenceExtractor.py --biocFile {AGRICOLA}/{IN:*.xml} --wordlist1 {FOOD.JSON} --wordlist2 {CHEMICAL.JSON} --outFile {TMPDIR}/{OUT:*.cooccurrences}
+   - python combineCooccurrences.py --inDir {TMPDIR} --outFile {RESULTS.TXT}
+output: {RESULTS.TXT}
+
