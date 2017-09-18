@@ -19,6 +19,7 @@
 """ 
 
 import re
+import codecs
 import json
 from pprint import pprint
 import optparse
@@ -310,9 +311,15 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Tool for extracting term list from FoodOn')
 	parser.add_argument('--owlFiles',type=str,required=True,help='Comma-delimited list of OWL files to load')
+	parser.add_argument('--stopwords',type=str,required=True,help='File of stopwords')
 	parser.add_argument('--outFile',type=str,required=True,help='File to dump out JSON term list')
 	args = parser.parse_args()
 	
+	stopwords = set()
+	print ("Loading stopwords")
+	with codecs.open(args.stopwords,'r','utf-8') as f:
+		stopwords = set( [ line.strip().lower() for line in f ] )
+
 	termList = defaultdict(set)
 	for owlFile in args.owlFiles.split(','):
 		genepio = Ontology(owlFile)
@@ -324,7 +331,9 @@ if __name__ == '__main__':
 			tid = t["id"]
 			for textField in ["label","synonym","exactSynonym"]:
 				if textField in t:
-					termList[tid].add(t[textField])
+					term = t[textField]
+					if len(term) >= 3 and not term.lower() in stopwords:
+						termList[tid].add(t[textField])
 		#with open('table.json','w') as outF:
 		#	json.dump(table,outF,indent=2,sort_keys=True)
 
