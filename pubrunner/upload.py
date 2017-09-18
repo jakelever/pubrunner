@@ -4,7 +4,7 @@ import shutil
 import requests
 import json
 
-def pushToFTP(outputDir,toolSettings,globalSettings):
+def pushToFTP(outputList,toolSettings,globalSettings):
 	FTP_ADDRESS = globalSettings["upload"]["ftp"]["url"]
 	FTP_USERNAME = globalSettings["upload"]["ftp"]["username"]
 	FTP_PASSWORD = globalSettings["upload"]["ftp"]["password"]
@@ -15,38 +15,35 @@ def pushToFTP(outputDir,toolSettings,globalSettings):
 	ftpc = pubrunner.FTPClient(FTP_ADDRESS, FTP_USERNAME, FTP_PASSWORD)
 	# 2. Go the the right directory, or create it
 	ftpc.cdTree(toolSettings["name"]+"/"+str(toolSettings["version"])+"/")
-	# 3. Upload all files
+
+	assert len(outputList) == 1 and os.path.isdir(outputList[0]), "FTP only accepted a single output directory at the moment"
+	outputDir = outputList[0]
 	for f in os.listdir(outputDir):
 		fPath = os.path.join(outputDir, f)
 		if os.path.isfile(fPath):
 			ftpc.upload(outputDir, f)
+
 	# 4. Close session
 	ftpc.quit()
 
-	# Delete that content locally
-	for f in os.listdir(outputDir):
-		fPath = os.path.join(outputDir, f)
-		try:
-			if os.path.isfile(fPath):
-				os.unlink(fPath)
-		except Exception as e:
-			print(e)
-
-def pushToLocalDirectory(outputDir,toolSettings,globalSettings):
+def pushToLocalDirectory(outputList,toolSettings,globalSettings):
 	LOCAL_DIRECTORY = globalSettings["upload"]["local-directory"]["path"]
 
 	destDir = os.path.join(LOCAL_DIRECTORY,toolSettings["name"],str(toolSettings["version"]))
 	if not os.path.isdir(destDir):
 		os.makedirs(destDir)
 
-	# N.B. This doesn't recursively copy files
-	for f in os.listdir(outputDir):
-		src = os.path.join(outputDir, f)
-		dst = os.path.join(destDir, f)
+	for src in outputList:
+		basename = os.path.basename(src)
+		dst = os.path.join(destDir, basename)
 		if os.path.isfile(src):
 			shutil.copyfile(src,dst)
+		elif os.path.isdir(src):
+			if os.path.isdir(dst):
+				shutil.rmtree(dst)
+			shutil.copytree(src,dst)
 
-def pushToZenodo(outputDir,toolSettings,globalSettings):
+def pushToZenodo(outputList,toolSettings,globalSettings):
 	#if globalSettings["upload"]["zenodo"]["sandbox"] == True:
 	ZENODO_URL = 'https://sandbox.zenodo.org'
 	#else:
@@ -71,6 +68,8 @@ def pushToZenodo(outputDir,toolSettings,globalSettings):
 	print("  Got provisional DOI: %s" % doiURL)
 
 	print("  Adding files to Zenodo submission")
+	assert len(outputList) == 1 and os.path.isdir(outputList[0]), "Zenodo only accepted a single output directory at the moment"
+	outputDir = outputList[0]
 	for f in os.listdir(outputDir):
 		src = os.path.join(outputDir, f)
 		if os.path.isfile(src):

@@ -125,7 +125,7 @@ def processResourceSettings(toolSettings,mode):
 	toolSettings["build"] = preprocessingCommands + toolSettings["build"]
 	return locationMap
 
-def commandToSnakeMake(commandid,command,locationMap):
+def commandToSnakeMake(ruleName,command,locationMap):
 	variables = extractVariables(command)
 
 	inputs = []
@@ -191,8 +191,6 @@ def commandToSnakeMake(commandid,command,locationMap):
 		elif vartype == 'OUT':
 			newCommand = newCommand[:startPos] + '{output.%s}' % repname + newCommand[endPos:]
 
-	ruleName = "COMMAND_%d" % commandid
-
 	ruleTxt = ""
 	ruleTxt += "rule %s_ACTIONS:\n" % ruleName
 	ruleTxt += "\tinput:\n"
@@ -223,7 +221,7 @@ def commandToSnakeMake(commandid,command,locationMap):
 	return ruleTxt
 
 def generateGetResourceSnakeRule(resources):
-	ruleTxt = 'RULE getResources:\n'
+	ruleTxt = 'rule getResources:\n'
 	ruleTxt += '\tshell:\n'
 	ruleTxt += '\t\t"""\n'
 	for resource in resources:
@@ -257,6 +255,7 @@ def pubrun(directory,doTest,execute=False):
 	with open(os.path.join(os.path.dirname(__file__),'Snakefile.header')) as f:
 		snakefileHeader = f.read()
 
+	print("Building Snakefile")
 	with open('Snakefile','w') as f:
 		f.write(snakefileHeader)
 
@@ -265,36 +264,38 @@ def pubrun(directory,doTest,execute=False):
 
 		commands = toolSettings["build"] + toolSettings["run"]
 		for i,command in enumerate(commands):
-			snakecode = commandToSnakeMake(i+1, command,locationMap)
+			ruleName = "RULE_%d" % (i+1)
+			snakecode = commandToSnakeMake(ruleName, command,locationMap)
 			f.write(snakecode + "\n")
+	print("Completed Snakefile")
+
+	if execute:
+		for i,command in enumerate(commands):
+			ruleName = "RULE_%d" % (i+1)
+			print("\nRunning command %d: %s" % (i+1,command))
+			retval = subprocess.call(["snakemake",ruleName])
+			if retval != 0:
+				raise RuntimeError("Snake make call FAILED for rule: %s" % ruleName)
+		print("")
+
+		if "output" in toolSettings:
+			outputList = toolSettings["output"]
+			if not isinstance(outputList,list):
+				outputList = [outputList]
+
+			outputLocList = [ locationMap[o] for o in outputList ]
+
+			if "upload" in globalSettings:
+				if "ftp" in globalSettings["upload"]:
+					print("Uploading results to FTP")
+					pubrunner.pushToFTP(outputLocList,toolSettings,globalSettings)
+				if "local-directory" in globalSettings["upload"]:
+					print("Uploading results to local directory")
+					pubrunner.pushToLocalDirectory(outputLocList,toolSettings,globalSettings)
+				if "zenodo" in globalSettings["upload"]:
+					print("Uploading results to Zenodo")
+					pubrunner.pushToZenodo(outputLocList,toolSettings,globalSettings)
+
+			print("Sending update to website")
 
 
-	sys.exit(0)
-
-
-	print("Running tool")
-	#outputDir = tempfile.mkdtemp()
-	outputDir = '/projects/bioracle/jake/pubrunnerTmp/out/'
-	#runCommands = adaptCommands(toolSettings["run"],resourceMap,outputDir)
-	#print(runCommands)
-	runCommands = transformParallelCommands(toolSettings["run"])
-					
-	print(runCommands)
-	#execCommands(adaptedCommands)
-
-	sys.exit(0)
-
-
-	if "upload" in globalSettings:
-		print(json.dumps(globalSettings,indent=2))
-		if "ftp" in globalSettings["upload"]:
-			print("Uploading results to FTP")
-			pubrunner.pushToFTP(outputDir,toolSettings,globalSettings)
-		if "local-directory" in globalSettings["upload"]:
-			print("Uploading results to local directory")
-			pubrunner.pushToLocalDirectory(outputDir,toolSettings,globalSettings)
-		if "zenodo" in globalSettings["upload"]:
-			print("Uploading results to Zenodo")
-			pubrunner.pushToZenodo(outputDir,toolSettings,globalSettings)
-
-	print("Sending update to website")
