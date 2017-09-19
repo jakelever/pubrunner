@@ -90,7 +90,7 @@ def processResourceSettings(toolSettings,mode):
 					outDir = nameToUse
 					outFormat = resSettings["format"]
 
-					command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*.converted} --oFormat %s" % (inDir,inFilter,inFormat,outDir,outFormat)
+					command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*%s} --oFormat %s" % (inDir,inFilter,inFormat,outDir,inFilter,outFormat)
 					preprocessingCommands.append( command )
 
 					locationMap[nameToUse+"_UNCONVERTED"] = getResourceLocation(resName)
