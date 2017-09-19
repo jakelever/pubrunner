@@ -28,8 +28,6 @@ import os
 import argparse
 
 import rdflib
-#import rdflib.plugins.sparql as sparql
-import rdfextras; rdfextras.registerplugins() # so we can Graph.query()
 
 # Do this, otherwise a warning appears on stdout: No handlers could be found for logger "rdflib.term"
 import logging; logging.basicConfig(level=logging.ERROR) 
@@ -91,7 +89,7 @@ class Ontology(object):
 		if not os.path.isfile(main_ontology_file):
 			stop_err('Please check the OWL ontology file path')			
 
-		print "PROCESSING " + main_ontology_file + " ..."
+		print("PROCESSING " + main_ontology_file + " ...")
 		# Load main ontology file into RDF graph
 		self.graph.parse(main_ontology_file)
 		# Add each ontology include file (must be in XML/RDF format)
@@ -286,7 +284,7 @@ class Ontology(object):
 		# Generic TREE "is a" hierarchy from given root.
 		# FUTURE: ADD SORTING OPTIONS, CUSTOM ORDER.
 		#
-		'tree': rdflib.plugins.sparql.prepareQuery("""
+		'tree': rdflib.sparql.prepareQuery("""
 			SELECT DISTINCT ?id ?parent ?label ?uiLabel ?definition ?synonym ?exactSynonym ?comment
 			WHERE {	
 				?parent rdfs:subClassOf* ?root.

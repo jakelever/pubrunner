@@ -31,8 +31,8 @@ if __name__ == '__main__':
 			if chemid in chemidsInPubMed:
 				if len(term) >= 3 and not term.lower() in stopwords:
 					d[chemid].append(term)
-			if (i%10000) == 0:
-				print i, term
+			if (i%100000) == 0:
+				print(i, term)
 
 	print("Outputting term list to file")
 	with open(args.outFile,'w') as f:

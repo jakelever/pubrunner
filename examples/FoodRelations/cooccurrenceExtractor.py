@@ -80,7 +80,7 @@ if __name__ == '__main__':
 			#if docid > 1000:
 			#	break
 			if (docid % 1000) == 0:
-				print docid
+				print(docid)
 
 	with open(args.outFile,'w') as outF:
 		for (a,b),count in cooccurrences.items():
