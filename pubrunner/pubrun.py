@@ -178,6 +178,15 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap):
 			newCommand = newCommand[:startPos] + '{output.%s}' % repname + newCommand[endPos:]
 
 	ruleTxt = ""
+	
+	ruleTxt += "\n"
+	if hasWildcard:
+		ruleTxt += "%s_EXPECTED_FILES = predictOutputFiles('%s','%s')\n" % (ruleName,firstInputPattern,firstOutputPattern)
+	else:
+		ruleTxt += "%s_EXPECTED_FILES = ['%s']\n" % (ruleName,firstOutputPattern)
+	ruleTxt += "rule %s:\n" % ruleName
+	ruleTxt += "\tinput: %s_EXPECTED_FILES\n" % ruleName
+
 	ruleTxt += "rule %s_ACTIONS:\n" % ruleName
 	ruleTxt += "\tinput:\n"
 	#ruleTxt += "\t\tINPUTS\n"
@@ -195,14 +204,7 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap):
 	for dirToTouch in dirsToTouch:
 		ruleTxt += "\t\ttouch %s\n" % dirToTouch
 	ruleTxt += '\t\t"""\n'
-	
-	ruleTxt += "\n"
-	if hasWildcard:
-		ruleTxt += "%s_EXPECTED_FILES = predictOutputFiles('%s','%s')\n" % (ruleName,firstInputPattern,firstOutputPattern)
-	else:
-		ruleTxt += "%s_EXPECTED_FILES = ['%s']\n" % (ruleName,firstOutputPattern)
-	ruleTxt += "rule %s:\n" % ruleName
-	ruleTxt += "\tinput: %s_EXPECTED_FILES\n" % ruleName
+
 
 	return ruleTxt
 
@@ -242,25 +244,32 @@ def pubrun(directory,doTest,execute=False):
 	with open(os.path.join(os.path.dirname(__file__),'Snakefile.header')) as f:
 		snakefileHeader = f.read()
 
-	print("Building Snakefile")
-	with open('Snakefile','w') as f:
-		f.write(snakefileHeader)
+	ruleDir = '.pubrunner'
+	if not os.path.isdir(ruleDir):
+		os.makedirs(ruleDir)
 
+	print("Building Snakefile")
+
+	with open(os.path.join(ruleDir,'Snakefile.resources'),'w') as f:
 		resourcesSnakeRule = generateGetResourceSnakeRule(toolSettings["resources"])
 		f.write(resourcesSnakeRule)
 
-		commands = toolSettings["build"] + toolSettings["run"]
-		for i,command in enumerate(commands):
+
+	commands = toolSettings["build"] + toolSettings["run"]
+	for i,command in enumerate(commands):
+		snakeFilePath = os.path.join(ruleDir,'Snakefile.%d' % (i+1))
+		with open(snakeFilePath,'w') as f:
 			ruleName = "RULE_%d" % (i+1)
 			snakecode = commandToSnakeMake(toolName, ruleName, command,locationMap)
+			f.write(snakefileHeader)
 			f.write(snakecode + "\n")
 	print("Completed Snakefile")
 
 	if execute:
 		for i,command in enumerate(commands):
-			ruleName = "RULE_%d" % (i+1)
+			snakeFilePath = os.path.join(ruleDir,'Snakefile.%d' % (i+1))
 			print("\nRunning command %d: %s" % (i+1,command))
-			retval = subprocess.call(["snakemake",ruleName])
+			retval = subprocess.call(["snakemake",'-s',snakeFilePath])
 			if retval != 0:
 				raise RuntimeError("Snake make call FAILED for rule: %s" % ruleName)
 		print("")
