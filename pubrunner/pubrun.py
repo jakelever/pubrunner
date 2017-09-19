@@ -68,6 +68,7 @@ def processResourceSettings(toolSettings,mode):
 	for resourceGroupName in ["all",mode]:
 		for resName in toolSettings["resources"][resourceGroupName]:
 			if isinstance(resName,dict):
+				print(resName)
 				assert len(resName.items()) == 1
 
 				# TODO: Rename resSettings and resInfo to be more meaningful
@@ -147,6 +148,7 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap):
 			hasWildcard = True
 
 		repname = varname + str(startPos)
+		repname = repname.replace('.','_')
 		if vartype == 'IN' and not pattern:
 			inputs.append((repname,loc))
 		elif vartype == 'OUT' and not pattern:
