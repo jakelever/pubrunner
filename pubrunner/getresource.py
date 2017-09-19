@@ -54,7 +54,8 @@ def download(url,out):
 			if isDir:
 				assert os.path.isdir(out), "FTP path (%s) is a directory. Expect a directory as output" % url
 				for filename in host.listdir(path):
-					host.download(filename,os.path.join(out,filename))
+					print("Downloading %s" % filename)
+					host.download(host.path.join(path,filename),os.path.join(out,filename))
 			else:
 				host.download(path,out)
 		#if isDir:
