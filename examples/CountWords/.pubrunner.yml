@@ -2,8 +2,6 @@ name: CountWords
 version: 0.2
 mode: complete
 resources:
-   all:
-      - FOODON
    main:
       - PUBMED
    test:
