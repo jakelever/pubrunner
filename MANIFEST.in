@@ -1,1 +1,2 @@
 include pubrunner/resources/*.yml
+include pubrunner/Snakefile.header
