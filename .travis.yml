@@ -2,7 +2,6 @@ language: python
 python:
   - "3.5"
 install:
-  - source ./.travis/install.sh
   - pip install pytest coverage pytest-timeout pytest_socket
   - pip install python-coveralls
   - pip install --upgrade coverage
