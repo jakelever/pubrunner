@@ -27,7 +27,7 @@ def pushToFTP(outputList,toolSettings,globalSettings):
 	ftpc.quit()
 
 def pushToLocalDirectory(outputList,toolSettings,globalSettings):
-	LOCAL_DIRECTORY = globalSettings["upload"]["local-directory"]["path"]
+	LOCAL_DIRECTORY = os.path.expanduser(globalSettings["upload"]["local-directory"]["path"])
 
 	destDir = os.path.join(LOCAL_DIRECTORY,toolSettings["name"],str(toolSettings["version"]))
 	if not os.path.isdir(destDir):
