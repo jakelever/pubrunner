@@ -268,6 +268,14 @@ def pubrun(directory,doTest,execute=False):
 	print("Completed Snakefile")
 
 	if execute:
+		snakeFilePath = os.path.join(ruleDir,'Snakefile.resources')
+		print("\nRunning command to fetch resourcess")
+		makecommand = "snakemake -s %s" % (snakeFilePath)
+		retval = subprocess.call(shlex.split(makecommand))
+		if retval != 0:
+			raise RuntimeError("Snake make call FAILED for get resources")
+
+
 		clusterFlags = ""
 		if "cluster" in globalSettings:
 			assert "options" in globalSettings["cluster"], "Options must also be provided in the cluster settings, e.g. qsub"
