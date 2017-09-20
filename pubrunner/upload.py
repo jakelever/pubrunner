@@ -119,5 +119,5 @@ def pushToZenodo(outputList,toolSettings,globalSettings):
 	#				 params={'access_token': ACCESS_TOKEN} )
 	#assert r.status_code == 202, "Unable to publish to Zenodo submission (error: %d) " % r.status_code
 
-	#return doiURL
+	return doiURL
 
