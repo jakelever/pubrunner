@@ -36,47 +36,68 @@ def calcSHA256forDir(directory):
 
 def download(url,out):
 	if url.startswith('ftp'):
-		#isDir = ftpIsDir(url)
-
-		#hostname = url.replace("ftp://","").
 		url = url.replace("ftp://","")
 		hostname = url.split('/')[0]
-		#parent = "/".join(url.split('/')[1:-1])
 		path = "/".join(url.split('/')[1:])
-		#basename = url.split('/')[-1]
-
-
 		with ftputil.FTPHost(hostname, 'anonymous', 'secret') as host:
-			isDir = host.path.isdir(path)
-			isFile = host.path.isfile(path)
-			assert isDir or isFile
-
-			if isDir:
-				assert os.path.isdir(out), "FTP path (%s) is a directory. Expect a directory as output" % url
-				for filename in host.listdir(path):
-					print("Downloading %s" % filename)
-					host.download(host.path.join(path,filename),os.path.join(out,filename))
-			else:
-				host.download(path,out)
-		#if isDir:
-		#	if not os.path.isdir(out):
-		#		raise RuntimeError("FTP path (%s) is a directory. Expect a directory as output" % url)
-			
-			
-
-		
-		#ftpDirListing(url)
-
-		#sys.exit(0)
+			downloadFTP(path,out,host)
+	elif url.startswith('http'):
+		downloadHTTP(url,out)
 	else:
-		if os.path.isfile(out):
-			os.unlink(out)
+		raise RuntimeError("Unsure how to download file. Expecting URL to start with ftp or http. Got: %s" % url)
 
-		wget.download(url,out,bar=None)
+def downloadFTP(path,out,host):
+	if host.path.isfile(path):
+		remoteTimestamp = host.path.getmtime(path)
+		
+		doDownload = True
+		if os.path.isdir(out):
+			localTimestamp = os.path.getmtime(out)
+			if not remoteTimestamp > localTimestamp:
+				doDownload = False
+		if path.endswith('.gz'):
+			outUnzipped = out[:-3]
+			if os.path.isfile(outUnzipped):
+				localTimestamp = os.path.getmtime(outUnzipped)
+				if not remoteTimestamp > localTimestamp:
+					doDownload = False
+		if doDownload:
+			print("\tDownloading %s" % path)
+			didDownload = host.download(path,out)
+			os.utime(out,(remoteTimestamp,remoteTimestamp))
+		else:
+			print("\tSkipping %s" % path)
+
+	elif host.path.isdir(path):
+		basename = host.path.basename(path)
+		newOut = os.path.join(basename)
+		os.makedirs(newOut)
+		for children in host.listdir(path):
+			srcFilename = host.path.join(path,child)
+			dstFilename = os.path.join(newOut,child)
+			downloadFTP(srcFilename,dstFilename,host)
+	else:
+		raise RuntimeError("Path (%s) is not a file or directory" % path) 
+
+def downloadHTTP(url,out):
+	fileAlreadyExists = os.path.isfile(out)
+
+	if fileAlreadyExists:
+		timestamp = os.path.getmtime(source)
+		beforeHash = calcSHA256(out)
+		os.unlink(out)
+
+	wget.download(url,out,bar=None)
+	if fileAlreadyExists:
+		afterHash = calcSHA256(out)
+		if beforeHash == afterHash: # File's haven't changed to move the modified date back
+			os.utime(out,(timestamp,timestamp))
 
 def gunzip(source,dest,deleteSource=False):
+	timestamp = os.path.getmtime(source)
 	with gzip.open(source, 'rb') as f_in, open(dest, 'wb') as f_out:
 		shutil.copyfileobj(f_in, f_out)
+	os.utime(dest,(timestamp,timestamp))
 
 	if deleteSource:
 		os.unlink(source)
