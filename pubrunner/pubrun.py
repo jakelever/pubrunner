@@ -23,6 +23,7 @@ import ftputil
 from collections import OrderedDict
 import re
 import glob
+import requests
 
 
 def extractVariables(command):
@@ -51,10 +52,11 @@ def getResourceInfo(resource):
 
 	return resourceInfo
 
-def makeLocation(toolname,name,createDir=False):
+def makeLocation(toolname,name,mode,createDir=False):
 	globalSettings = pubrunner.getGlobalSettings()
 	workspaceDir = os.path.expanduser(globalSettings["storage"]["workspace"])
 	thisDir = os.path.join(workspaceDir,toolname,name)
+	thisDir = os.path.join(workspaceDir,toolname,mode,name)
 	if createDir and not os.path.isdir(thisDir):
 		os.makedirs(thisDir)
 	return thisDir
@@ -94,7 +96,7 @@ def processResourceSettings(toolSettings,mode):
 					preprocessingCommands.append( command )
 
 					locationMap[nameToUse+"_UNCONVERTED"] = getResourceLocation(resName)
-					locationMap[nameToUse] = makeLocation(toolName,resName+"_CONVERTED")
+					locationMap[nameToUse] = makeLocation(toolName,resName+"_CONVERTED",mode)
 				else:
 					locationMap[nameToUse] = getResourceLocation(resName)
 					
@@ -109,7 +111,7 @@ def processResourceSettings(toolSettings,mode):
 	toolSettings["build"] = preprocessingCommands + toolSettings["build"]
 	return locationMap
 
-def commandToSnakeMake(toolName,ruleName,command,locationMap):
+def commandToSnakeMake(toolName,ruleName,command,locationMap,mode):
 	variables = extractVariables(command)
 
 	inputs = []
@@ -140,7 +142,7 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap):
 		assert var.count('*') <= 1, "Cannot have more than one wildcard in variable: %s" % var
 
 		if not varname in locationMap:
-			locationMap[varname] = makeLocation(toolName,varname)
+			locationMap[varname] = makeLocation(toolName,varname,mode)
 		loc = locationMap[varname]
 		loc = os.path.relpath(loc)
 
@@ -168,7 +170,7 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap):
 				firstOutputPattern = loc + '/' + pattern
 
 			# Make sure the directory is created
-			makeLocation(toolName,varname,createDir=True)
+			makeLocation(toolName,varname,mode,createDir=True)
 
 			snakepattern = loc + '/' + pattern.replace('*','{f}')
 			outputs.append((repname,snakepattern))
@@ -262,7 +264,7 @@ def pubrun(directory,doTest,execute=False):
 		snakeFilePath = os.path.join(ruleDir,'Snakefile.%d' % (i+1))
 		with open(snakeFilePath,'w') as f:
 			ruleName = "RULE_%d" % (i+1)
-			snakecode = commandToSnakeMake(toolName, ruleName, command,locationMap)
+			snakecode = commandToSnakeMake(toolName, ruleName, command, locationMap, mode)
 			f.write(snakefileHeader)
 			f.write(snakecode + "\n")
 	print("Completed Snakefile")
@@ -311,6 +313,19 @@ def pubrun(directory,doTest,execute=False):
 					print("Uploading results to Zenodo")
 					pubrunner.pushToZenodo(outputLocList,toolSettings,globalSettings)
 
-			print("Sending update to website")
+			if "website-update" in globalSettings and toolName in globalSettings["website-update"]:
+				websiteToken = globalSettings["website-update"][toolName]
+				print("Sending update to website")
+				
+				updateData = [{'authentication':websiteToken,'success':True,'lastRun':'01-01-1970','codeurl':'http://www.google.com','dataurl':'http://www.bbc.co.uk',}]
+				#with tempfile.NamedTemporaryFile() as temp:
+				temp = 'tempFile'
+				with open(temp,'w') as f:
+					json.dump(updateData,f)
+				with open(temp) as f:
+					r = requests.post('http://www.pubrunner.org/update.php', files={'jsonFile': f})
+			else:
+				print("Could not update website. Did not find %s under website-update in .pubrunner.settings.yml file")
+
 
 
