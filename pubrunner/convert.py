@@ -68,11 +68,6 @@ def cleanupText(text):
 	text = text.replace(u'\u2028',' ').replace(u'\u2029',' ')
 	text = "".join(ch for ch in text if unicodedata.category(ch)[0]!="C")
 	text = "".join(ch if unicodedata.category(ch)[0]!="Z" else " " for ch in text)
-
-	#if text.startswith("Mean serum"):
-	#	with codecs.open('test','w','utf-8') as f:
-	#		f.write(text + "\n")
-	#	sys.exit(0)
 	return text.strip()
 
 # Unescape HTML special characters e.g. &gt; is changed to >
