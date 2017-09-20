@@ -48,8 +48,8 @@ def pushToZenodo(outputList,toolSettings,globalSettings):
 	ZENODO_URL = 'https://sandbox.zenodo.org'
 	#else:
 	#	ZENODO_URL = 'https://zenodo.org'
-	ZENODO_AUTHOR = 'TODO'
-	ZENODO_AUTHOR_AFFILIATION = 'TODO'
+	ZENODO_AUTHOR = globalSettings["upload"]["zenodo"]["author"]
+	ZENODO_AUTHOR_AFFILIATION = globalSettings["upload"]["zenodo"]["authorAffiliation"]
 
 	ACCESS_TOKEN = globalSettings["upload"]["zenodo"]["token"]
 	
