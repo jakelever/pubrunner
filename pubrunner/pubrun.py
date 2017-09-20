@@ -271,7 +271,8 @@ def pubrun(directory,doTest,execute=False):
 		for i,command in enumerate(commands):
 			snakeFilePath = os.path.join(ruleDir,'Snakefile.%d' % (i+1))
 			print("\nRunning command %d: %s" % (i+1,command))
-			retval = subprocess.call(["snakemake",'-s',snakeFilePath])
+			makecommand = "snakemake --cluster  'qsub -w n -P unified -V' --jobs 50 --latency-wait 60 -s %s" % snakeFilePath
+			retval = subprocess.call(shlex.split(makecommand))
 			if retval != 0:
 				raise RuntimeError("Snake make call FAILED for rule: %s" % ruleName)
 		print("")
