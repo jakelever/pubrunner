@@ -268,10 +268,18 @@ def pubrun(directory,doTest,execute=False):
 	print("Completed Snakefile")
 
 	if execute:
+		clusterFlags = ""
+		if "cluster" in globalSettings:
+			assert "options" in globalSettings["cluster"], "Options must also be provided in the cluster settings, e.g. qsub"
+			jobs = 1
+			if "jobs" in globalSettings["cluster"]:
+				jobs = int(globalSettings["cluster"]["jobs"])
+			clusterFlags = "--cluster '%s' --jobs %d --latency-wait 60" % (globalSettings["cluster"]["options"],jobs)
+
 		for i,command in enumerate(commands):
 			snakeFilePath = os.path.join(ruleDir,'Snakefile.%d' % (i+1))
 			print("\nRunning command %d: %s" % (i+1,command))
-			makecommand = "snakemake --cluster  'qsub -w n -P unified -V' --jobs 50 --latency-wait 60 -s %s" % snakeFilePath
+			makecommand = "snakemake %s -s %s" % (clusterFlags,snakeFilePath)
 			retval = subprocess.call(shlex.split(makecommand))
 			if retval != 0:
 				raise RuntimeError("Snake make call FAILED for rule: %s" % ruleName)
