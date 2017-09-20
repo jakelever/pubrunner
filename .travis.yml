@@ -11,6 +11,7 @@ install:
 script:
   - coverage --version
   - python --version
-  - coverage run --branch -m pytest -v && coverage report -m
+  #- coverage run --branch -m pytest -v && coverage report -m
+  - pubrunner --test examples/CountWords
 after_success:
   - coveralls
