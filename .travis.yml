@@ -6,7 +6,7 @@ install:
   - pip install python-coveralls
   - pip install --upgrade coverage
   - pip install .
-  - cp ./tests/.pubrunner.settings.yml ./
+  - cp ./tests/.pubrunner.settings.yml ~
 # command to run tests
 script:
   - coverage --version
