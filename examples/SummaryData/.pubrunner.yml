@@ -1,4 +1,4 @@
-name: FoodRelations
+name: SummaryData
 version: 0.1
 mode: incremental
 resources:
@@ -11,8 +11,16 @@ resources:
       - AGRICOLA_TWOFILES:
            rename: AGRICOLA
 run:
-   - python summarizePubmedXML.py --i {IN:PUBMED/*.xml} --oTitles {OUT:TITLES/*.xml} --oHasTitlesAndAbstracts {OUT:HASTITLESANDABSTRACTS/*} --oPubYear {OUT:PUBYEAR/*} --oJournals {OUT:JOURNAL/*}
-   - python summarizeMarcXML.py --i {IN:AGRICOLA/*.xml} --oTitles {OUT:TITLES/*.xml} --oHasTitlesAndAbstracts {OUT:HASTITLESANDABSTRACTS/*} --oPubYear {OUT:PUBYEAR/*} --oJournals {OUT:JOURNAL/*}
+   - python summarizePubmedXML.py --i {IN:PUBMED/*.xml} --oTitles {OUT:P_TITLES/*.xml} --oHasTitlesAndAbstracts {OUT:P_HASTITLESANDABSTRACTS/*} --oPubYear {OUT:P_PUBYEAR/*} --oJournals {OUT:P_JOURNAL/*}
+   - python summarizeMarcXML.py --i {IN:AGRICOLA/*.xml} --oTitles {OUT:A_TITLES/*.xml} --oHasTitlesAndAbstracts {OUT:A_HASTITLESANDABSTRACTS/*} --oPubYear {OUT:A_PUBYEAR/*} --oJournals {OUT:A_JOURNAL/*}
 #   - python combineCooccurrences.py --inDir {IN:TMPDIR} --outFile {OUT:RESULTS.TXT}
-output: TITLES
+   - cat {IN:PUBYEAR}/* | sort -n | uniq -c > {OUT:out.p.years}
+   - cat {IN:JOURNAL}/* | sort | uniq -c > {OUT:out.p.journals}
+   - cat {IN:HASTITLESANDABSTRACTS}/* | cut -f 1 -d ' ' | ./sumnumbers > {OUT:out.p.titlecounts}
+   - cat {IN:HASTITLESANDABSTRACTS}/* | cut -f 2 -d ' ' | ./sumnumbers > {OUT:out.p.abstractcounts}
+   - cat {IN:PUBYEAR}/* | sort -n | uniq -c > {OUT:out.p.years}
+   - cat {IN:JOURNAL}/* | sort | uniq -c > {OUT:out.p.journals}
+   - cat {IN:HASTITLESANDABSTRACTS}/* | cut -f 1 -d ' ' | ./sumnumbers > {OUT:out.p.titlecounts}
+   - cat {IN:HASTITLESANDABSTRACTS}/* | cut -f 2 -d ' ' | ./sumnumbers > {OUT:out.p.abstractcounts}
+#output: OUTDIR
 
