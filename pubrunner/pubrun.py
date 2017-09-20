@@ -230,9 +230,9 @@ def pubrun(directory,doTest,execute=False):
 
 	os.chdir(directory)
 
-	toolYamlFile = '.pubrunner.yml'
+	toolYamlFile = 'pubrunner.yml'
 	if not os.path.isfile(toolYamlFile):
-		raise RuntimeError("Expected a .pubrunner.yml file in root of codebase")
+		raise RuntimeError("Expected a %s file in root of codebase" % toolYamlFile)
 
 	toolSettings = pubrunner.loadYAML(toolYamlFile)
 	toolName = toolSettings["name"]
