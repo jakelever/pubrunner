@@ -12,6 +12,11 @@ script:
   - coverage --version
   - python --version
   #- coverage run --branch -m pytest -v && coverage report -m
+  - pubrunner --getResource PUBMED_TWOFILES
+  - ls -l /home/travis
+  - ls -l /home/travis/pubrunner
+  - ls -l /home/travis/pubrunner/resources
+  - ls -l /home/travis/pubrunner/resources/PUBMED_TWOFILES
   - pubrunner --test examples/CountWords
 after_success:
   - coveralls
