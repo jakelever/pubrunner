@@ -39,7 +39,7 @@ def extractVariables(command):
 
 def getResourceLocation(resource):
 	globalSettings = pubrunner.getGlobalSettings()
-	resourceDir = globalSettings["storage"]["resources"]
+	resourceDir = os.path.expanduser(globalSettings["storage"]["resources"])
 	thisResourceDir = os.path.join(resourceDir,resource)
 	return thisResourceDir
 
@@ -53,7 +53,7 @@ def getResourceInfo(resource):
 
 def makeLocation(toolname,name,createDir=False):
 	globalSettings = pubrunner.getGlobalSettings()
-	workspaceDir = globalSettings["storage"]["workspace"]
+	workspaceDir = os.path.expanduser(globalSettings["storage"]["workspace"])
 	thisDir = os.path.join(workspaceDir,toolname,name)
 	if createDir and not os.path.isdir(thisDir):
 		os.makedirs(thisDir)

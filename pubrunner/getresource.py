@@ -86,7 +86,7 @@ def getResource(resource):
 	print("Fetching resource: %s" % resource)
 
 	globalSettings = pubrunner.getGlobalSettings()
-	resourceDir = globalSettings["storage"]["resources"]
+	resourceDir = os.path.expanduser(globalSettings["storage"]["resources"])
 	thisResourceDir = os.path.join(resourceDir,resource)
 
 	packagePath = os.path.dirname(pubrunner.__file__)
