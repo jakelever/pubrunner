@@ -14,6 +14,7 @@ import bioc
 import pymarc
 import shutil
 import six
+import unicodedata
 
 def writeMarcXMLRecordToBiocFile(record,biocWriter):
 	metadata = record['008'].value()
@@ -61,6 +62,18 @@ def removeWeirdBracketsFromOldTitles(titleText):
 	if titleText[0] == '[' and titleText[-2:] == '].':
 		titleText = titleText[1:-2] + '.'
 	return titleText
+
+def cleanupText(text):
+	# Remove some "control-like" characters (left/right separator)
+	text = text.replace(u'\u2028',' ').replace(u'\u2029',' ')
+	text = "".join(ch for ch in text if unicodedata.category(ch)[0]!="C")
+	text = "".join(ch if unicodedata.category(ch)[0]!="Z" else " " for ch in text)
+
+	#if text.startswith("Mean serum"):
+	#	with codecs.open('test','w','utf-8') as f:
+	#		f.write(text + "\n")
+	#	sys.exit(0)
+	return text.strip()
 
 # Unescape HTML special characters e.g. &gt; is changed to >
 htmlParser = HTMLParser()
@@ -132,6 +145,9 @@ def extractTextFromElemList(elemList):
 	
 	# Remove any newlines (as they can be trusted to be syntactically important)
 	mergedList = [ text.replace('\n', ' ') for text in mergedList ]
+
+	# Remove no-break spaces
+	mergedList = [ cleanupText(text) for text in mergedList ]
 	
 	return mergedList
 
