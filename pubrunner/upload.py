@@ -68,19 +68,34 @@ def pushToZenodo(outputList,toolSettings,globalSettings):
 	print("  Got provisional DOI: %s" % doiURL)
 
 	print("  Adding files to Zenodo submission")
-	assert len(outputList) == 1 and os.path.isdir(outputList[0]), "Zenodo only accepted a single output directory at the moment"
-	outputDir = outputList[0]
-	for f in os.listdir(outputDir):
-		src = os.path.join(outputDir, f)
-		if os.path.isfile(src):
-			r = requests.put('%s/%s' % (bucket_url,f),
-							data=open(src, 'rb'),
+	assert len(outputList) == 1, "Zenodo only accepted a single output file/directory at the moment"
+	if os.path.isdir(outputList[0]):
+		outputDir = outputList[0]
+		for f in os.listdir(outputDir):
+			src = os.path.join(outputDir, f)
+			if os.path.isfile(src):
+				r = requests.put('%s/%s' % (bucket_url,f),
+								data=open(src, 'rb'),
+								headers={"Accept":"application/json",
+								"Authorization":"Bearer %s" % ACCESS_TOKEN,
+								"Content-Type":"application/octet-stream"})
+
+
+				assert r.status_code == 200, "Unable to add file to Zenodo submission (error: %d) " % r.status_code
+	elif os.path.isfile(outputList[0]):
+			f = outputList[0]
+			basename = os.path.basename(f)
+			assert os.path.isfile(f), "Could not access file (%d) for upload to Zenodo" % f
+			r = requests.put('%s/%s' % (bucket_url,basename),
+							data=open(f, 'rb'),
 							headers={"Accept":"application/json",
 							"Authorization":"Bearer %s" % ACCESS_TOKEN,
 							"Content-Type":"application/octet-stream"})
 
-
 			assert r.status_code == 200, "Unable to add file to Zenodo submission (error: %d) " % r.status_code
+	else:
+		raise RuntimeError("Unable to find file or directory (%s) to upload to Zenodo" % outputList[0])
+
 
 	print("  Adding metadata to Zenodo submission")
 	data = {
