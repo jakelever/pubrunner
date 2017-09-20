@@ -24,6 +24,7 @@ from collections import OrderedDict
 import re
 import glob
 import requests
+import datetime
 
 
 def extractVariables(command):
@@ -302,6 +303,7 @@ def pubrun(directory,doTest,execute=False):
 
 			outputLocList = [ locationMap[o] for o in outputList ]
 
+			dataurl = None
 			if "upload" in globalSettings:
 				if "ftp" in globalSettings["upload"]:
 					print("Uploading results to FTP")
@@ -311,19 +313,24 @@ def pubrun(directory,doTest,execute=False):
 					pubrunner.pushToLocalDirectory(outputLocList,toolSettings,globalSettings)
 				if "zenodo" in globalSettings["upload"]:
 					print("Uploading results to Zenodo")
-					pubrunner.pushToZenodo(outputLocList,toolSettings,globalSettings)
+					dataurl = pubrunner.pushToZenodo(outputLocList,toolSettings,globalSettings)
 
 			if "website-update" in globalSettings and toolName in globalSettings["website-update"]:
+				assert not dataurl is None, "Don't have URL to update website with"
 				websiteToken = globalSettings["website-update"][toolName]
 				print("Sending update to website")
-				
-				updateData = [{'authentication':websiteToken,'success':True,'lastRun':'01-01-1970','codeurl':'http://www.google.com','dataurl':'http://www.bbc.co.uk',}]
+			
+				today = datetime.datetime.now().strftime("%m-%d-%Y")	
+				updateData = [{'authentication':websiteToken,'success':True,'lastRun':today,'codeurl':'http://www.pubrunner.org','dataurl':dataurl}]
 				#with tempfile.NamedTemporaryFile() as temp:
 				temp = 'tempFile'
 				with open(temp,'w') as f:
 					json.dump(updateData,f)
 				with open(temp) as f:
-					r = requests.post('http://www.pubrunner.org/update.php', files={'jsonFile': f})
+					#r = requests.post('http://www.pubrunner.org/update.php', files={'jsonFile': f})
+					r = requests.post('http://www.pubrunner.org/update.php')
+					print(r)
+					print(r.text)
 			else:
 				print("Could not update website. Did not find %s under website-update in .pubrunner.settings.yml file")
 
