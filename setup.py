@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-VERSION='0.1.0'
+VERSION='0.1.1'
 
 here = path.abspath(path.dirname(__file__))
 
@@ -27,12 +27,10 @@ setup(name='pubrunner',
 		'Intended Audience :: Science/Research',
 		'License :: OSI Approved :: MIT License',
 		'Operating System :: Unix',
-		'Operating System :: MacOS :: MacOS X',
-		'Programming Language :: Python :: 2.7',
 		'Programming Language :: Python :: 3.6',
 		'Topic :: Scientific/Engineering',
 	],
-	url='http://github.com/jakelever/kindred',
+	url='http://github.com/jakelever/pubrunner',
 	author='Jake Lever',
 	author_email='jake.lever@gmail.com',
 	license='MIT',
@@ -40,7 +38,8 @@ setup(name='pubrunner',
 	install_requires=requirements,
 	include_package_data=True,
 	entry_points = {
-		'console_scripts': ['pubrunner=pubrunner.command_line:main','pubrunner_convert=pubrunner.convert:main'],
+		'console_scripts': ['pubrunner=pubrunner.command_line:main',
+		                    'pubrunner_convert=pubrunner.convert:main'],
 	},
 	zip_safe=False,
 	test_suite='nose.collector',

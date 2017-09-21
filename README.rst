@@ -1,8 +1,12 @@
-=======
+=========
 PubRunner
-=======
+=========
 
-|build-status| |coverage| |docs| |license|
+|pypi| |build-status| |coverage| |docs| |license|
+
+.. |pypi| image:: https://img.shields.io/pypi/v/pubrunner.svg
+   :target: https://pypi.python.org/pypi/pubrunner
+   :alt: PyPI Release
 
 .. |build-status| image:: https://travis-ci.org/jakelever/pubrunner.svg?branch=master
    :target: https://travis-ci.org/jakelever/pubrunner
@@ -22,10 +26,29 @@ PubRunner
 
 PubRunner is a framework to keep text mining tools running on the latest publications.
 
+Installation
+------------
+
+PubRunner uses Python3 and can be installed via `pip`_ from `PyPI`_::
+
+   $ pip install pubrunner
+
+Usage
+-----
+
+To run Pubrunner, you just need to provide it with a path to a biomedical text mining tool (e.g. a Github repo or a local directory). The flag --test tells Pubrunner to execute the test set. Omitting that gets Pubrunner to run the tool on the full corpus (which for Ab3P is PubMed).
+
+   $ pubrunner --test https://github.com/jakelever/Ab3P
+
 Is PubRunner for me?
 --------------------
 
-When it's ready, yes
+Are you a biomedical text mining tool developer? Then likely yes. PubRunner makes it easy to run a text mining tool across PubMed and keep it working!
+
+Examples
+--------
+
+Check out the `examples`_ directory to see a small number of projects that use PubRunner on Pubmed.
 
 Contributing
 ------------
@@ -45,4 +68,4 @@ If you encounter any problems, please `file an issue`_ along with a detailed des
 .. _`file an issue`: https://github.com/jakelever/pubrunner/issues
 .. _`pip`: https://pypi.python.org/pypi/pip/
 .. _`PyPI`: https://pypi.python.org/pypi
-.. _`readthedocs`: http://pubrunner.readthedocs.io/
+.. _`examples`: https://github.com/jakelever/pubrunner/tree/master/examples
