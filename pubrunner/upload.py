@@ -44,10 +44,11 @@ def pushToLocalDirectory(outputList,toolSettings,globalSettings):
 			shutil.copytree(src,dst)
 
 def pushToZenodo(outputList,toolSettings,globalSettings):
-	#if globalSettings["upload"]["zenodo"]["sandbox"] == True:
-	ZENODO_URL = 'https://sandbox.zenodo.org'
-	#else:
-	#	ZENODO_URL = 'https://zenodo.org'
+	if "sandbox" in globalSettings["upload"]["zenodo"] and globalSettings["upload"]["zenodo"]["sandbox"] == True:
+		ZENODO_URL = 'https://sandbox.zenodo.org'
+	else:
+		ZENODO_URL = 'https://zenodo.org'
+
 	ZENODO_AUTHOR = globalSettings["upload"]["zenodo"]["author"]
 	ZENODO_AUTHOR_AFFILIATION = globalSettings["upload"]["zenodo"]["authorAffiliation"]
 
@@ -114,10 +115,10 @@ def pushToZenodo(outputList,toolSettings,globalSettings):
 
 	assert r.status_code == 200, "Unable to metadata to Zenodo submission (error: %d) " % r.status_code
 
-	#print("  Publishing Zenodo submission")
-	#r = requests.post(ZENODO_URL + '/api/deposit/depositions/%s/actions/publish' % deposition_id,
-	#				 params={'access_token': ACCESS_TOKEN} )
-	#assert r.status_code == 202, "Unable to publish to Zenodo submission (error: %d) " % r.status_code
+	print("  Publishing Zenodo submission")
+	r = requests.post(ZENODO_URL + '/api/deposit/depositions/%s/actions/publish' % deposition_id,
+					 params={'access_token': ACCESS_TOKEN} )
+	assert r.status_code == 202, "Unable to publish to Zenodo submission (error: %d) " % r.status_code
 
 	return doiURL
 

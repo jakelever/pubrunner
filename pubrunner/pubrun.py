@@ -308,7 +308,7 @@ def pubrun(directory,doTest,execute=False):
 				raise RuntimeError("Snake make call FAILED for command: %s . (file:%s)" % (command,snakeFilePath))
 		print("")
 
-		if "output" in toolSettings:
+		if "output" in toolSettings and mode != 'test':
 			outputList = toolSettings["output"]
 			if not isinstance(outputList,list):
 				outputList = [outputList]
