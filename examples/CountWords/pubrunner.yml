@@ -1,5 +1,6 @@
 name: CountWords
 version: 0.2
+url: https://github.com/jakelever/pubrunner/tree/master/examples/CountWords
 mode: complete
 resources:
    main:

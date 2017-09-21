@@ -1,5 +1,6 @@
 name: FoodRelations
 version: 0.1
+url: https://github.com/jakelever/pubrunner/tree/master/examples/FoodRelations
 mode: incremental
 resources:
    all:
