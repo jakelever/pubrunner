@@ -70,9 +70,10 @@ def downloadFTP(path,out,host):
 
 	elif host.path.isdir(path):
 		basename = host.path.basename(path)
-		newOut = os.path.join(basename)
-		os.makedirs(newOut)
-		for children in host.listdir(path):
+		newOut = os.path.join(out,basename)
+		if not os.path.isdir(newOut):
+			os.makedirs(newOut)
+		for child in host.listdir(path):
 			srcFilename = host.path.join(path,child)
 			dstFilename = os.path.join(newOut,child)
 			downloadFTP(srcFilename,dstFilename,host)
