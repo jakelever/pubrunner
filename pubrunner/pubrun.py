@@ -331,18 +331,14 @@ def pubrun(directory,doTest,execute=False):
 				assert not dataurl is None, "Don't have URL to update website with"
 				websiteToken = globalSettings["website-update"][toolName]
 				print("Sending update to website")
-			
+				
+				headers = {'User-Agent': 'Pubrunner Agent', 'From': 'no-reply@pubrunner.org'  }
 				today = datetime.datetime.now().strftime("%m-%d-%Y")	
-				updateData = [{'authentication':websiteToken,'success':True,'lastRun':today,'codeurl':'http://www.pubrunner.org','dataurl':dataurl}]
-				#with tempfile.NamedTemporaryFile() as temp:
-				temp = 'tempFile'
-				with open(temp,'w') as f:
-					json.dump(updateData,f)
-				with open(temp) as f:
-					#r = requests.post('http://www.pubrunner.org/update.php', files={'jsonFile': f})
-					r = requests.post('http://www.pubrunner.org/update.php')
-					print(r)
-					print(r.text)
+				updateData = [{'authentication':websiteToken,'success':True,'lastRun':today,'codeurl':toolSettings['url'],'dataurl':dataurl}]
+				
+				jsonData = json.dumps(updateData)
+				r = requests.post('http://www.pubrunner.org/update.php',headers=headers,files={'jsonFile': jsonData})
+				assert r.status_code == 200, "Error updating website with job status"
 			else:
 				print("Could not update website. Did not find %s under website-update in .pubrunner.settings.yml file")
 
