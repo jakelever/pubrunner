@@ -122,6 +122,7 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap,mode):
 
 	firstInputPattern,firstOutputPattern = None,None
 	hasWildcard = False
+	hasIn = False
 
 	for startPos,endPos,var in variables:
 		#isIn = var.startswith('IN:')
@@ -154,6 +155,7 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap,mode):
 		repname = repname.replace('.','_')
 		if vartype == 'IN' and not pattern:
 			inputs.append((repname,loc))
+			hasIn = True
 		elif vartype == 'OUT' and not pattern:
 			if not firstOutputPattern:
 				firstOutputPattern = loc
@@ -166,6 +168,7 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap,mode):
 
 			snakepattern = loc + '/' + pattern.replace('*','{f}')
 			inputs.append((repname,snakepattern))
+			hasIn = True
 		elif vartype == 'OUT' and pattern:
 			if not firstOutputPattern:
 				firstOutputPattern = loc + '/' + pattern
@@ -182,6 +185,7 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap,mode):
 		elif vartype == 'OUT':
 			newCommand = newCommand[:startPos] + '{output.%s}' % repname + newCommand[endPos:]
 
+	
 	ruleTxt = ""
 	
 	ruleTxt += "\n"
@@ -190,19 +194,22 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap,mode):
 	else:
 		ruleTxt += "%s_EXPECTED_FILES = ['%s']\n" % (ruleName,firstOutputPattern)
 	ruleTxt += "rule %s:\n" % ruleName
-	ruleTxt += "\tinput: %s_EXPECTED_FILES\n" % ruleName
 
-	ruleTxt += "rule %s_ACTIONS:\n" % ruleName
-	ruleTxt += "\tinput:\n"
-	#ruleTxt += "\t\tINPUTS\n"
-	for i,(name,pattern) in enumerate(inputs):
-		comma = "" if i+1 == len(inputs) else ","
-		ruleTxt += "\t\t%s='%s'%s\n" % (name,pattern,comma)
-	ruleTxt += "\toutput:\n"
-	#ruleTxt += "\t\tOUTPUTS\n"
-	for i,(name,pattern) in enumerate(outputs):
-		comma = "" if i+1 == len(outputs) else ","
-		ruleTxt += "\t\t%s='%s'%s\n" % (name,pattern,comma)
+	if hasIn:
+		ruleTxt += "\tinput: %s_EXPECTED_FILES\n" % ruleName
+
+		ruleTxt += "rule %s_ACTIONS:\n" % ruleName
+		ruleTxt += "\tinput:\n"
+		#ruleTxt += "\t\tINPUTS\n"
+		for i,(name,pattern) in enumerate(inputs):
+			comma = "" if i+1 == len(inputs) else ","
+			ruleTxt += "\t\t%s='%s'%s\n" % (name,pattern,comma)
+		ruleTxt += "\toutput:\n"
+		#ruleTxt += "\t\tOUTPUTS\n"
+		for i,(name,pattern) in enumerate(outputs):
+			comma = "" if i+1 == len(outputs) else ","
+			ruleTxt += "\t\t%s='%s'%s\n" % (name,pattern,comma)
+
 	ruleTxt += "\tshell:\n"
 	ruleTxt += '\t\t"""\n'
 	ruleTxt += "\t\t%s\n" % newCommand
@@ -260,14 +267,16 @@ def pubrun(directory,doTest,execute=False):
 		f.write(resourcesSnakeRule)
 
 
-	commands = toolSettings["build"] + toolSettings["run"]
-	for i,command in enumerate(commands):
-		snakeFilePath = os.path.join(ruleDir,'Snakefile.%d' % (i+1))
-		with open(snakeFilePath,'w') as f:
-			ruleName = "RULE_%d" % (i+1)
-			snakecode = commandToSnakeMake(toolName, ruleName, command, locationMap, mode)
-			f.write(snakefileHeader)
-			f.write(snakecode + "\n")
+	commandExecutionList = []
+	for commandGroup in ["build","run"]:
+		for i,command in enumerate(toolSettings[commandGroup]):
+			snakeFilePath = os.path.join(ruleDir,'Snakefile.%s_%d' % (commandGroup,i+1))
+			commandExecutionList.append((commandGroup=="run",snakeFilePath,command))
+			with open(snakeFilePath,'w') as f:
+				ruleName = "RULE_%d" % (i+1)
+				snakecode = commandToSnakeMake(toolName, ruleName, command, locationMap, mode)
+				f.write(snakefileHeader)
+				f.write(snakecode + "\n")
 	print("Completed Snakefile")
 
 	if execute:
@@ -287,13 +296,16 @@ def pubrun(directory,doTest,execute=False):
 				jobs = int(globalSettings["cluster"]["jobs"])
 			clusterFlags = "--cluster '%s' --jobs %d --latency-wait 60" % (globalSettings["cluster"]["options"],jobs)
 
-		for i,command in enumerate(commands):
-			snakeFilePath = os.path.join(ruleDir,'Snakefile.%d' % (i+1))
+		for i,(isRunCommand,snakeFilePath,command) in enumerate(commandExecutionList):
 			print("\nRunning command %d: %s" % (i+1,command))
-			makecommand = "snakemake %s -s %s" % (clusterFlags,snakeFilePath)
+			if isRunCommand:
+				makecommand = "snakemake %s -s %s" % (clusterFlags,snakeFilePath)
+			else:
+				makecommand = "snakemake -s %s" % (snakeFilePath)
+
 			retval = subprocess.call(shlex.split(makecommand))
 			if retval != 0:
-				raise RuntimeError("Snake make call FAILED for rule: %s" % ruleName)
+				raise RuntimeError("Snake make call FAILED for command: %s . (file:%s)" % (command,snakeFilePath))
 		print("")
 
 		if "output" in toolSettings:
