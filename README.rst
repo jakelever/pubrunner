@@ -48,7 +48,7 @@ Are you a biomedical text mining tool developer? Then likely yes. PubRunner make
 Examples
 --------
 
-Check out the `examples`_ directory to see a small number of projects that use PubRunner on Pubmed.
+Check out the `examplesdir`_ directory to see a small number of projects that use PubRunner on Pubmed.
 
 Contributing
 ------------
@@ -68,4 +68,5 @@ If you encounter any problems, please `file an issue`_ along with a detailed des
 .. _`file an issue`: https://github.com/jakelever/pubrunner/issues
 .. _`pip`: https://pypi.python.org/pypi/pip/
 .. _`PyPI`: https://pypi.python.org/pypi
-.. _`examples`: https://github.com/jakelever/pubrunner/tree/master/examples
+.. _`examplesdir`: https://github.com/jakelever/pubrunner/tree/master/examples
+
