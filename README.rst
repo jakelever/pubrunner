@@ -36,7 +36,7 @@ PubRunner uses Python3 and can be installed via `pip`_ from `PyPI`_::
 Usage
 -----
 
-To run Pubrunner, you just need to provide it with a path to a biomedical text mining tool (e.g. a Github repo or a local directory). The flag --test tells Pubrunner to execute the test set. Omitting that gets Pubrunner to run the tool on the full corpus (which for Ab3P is PubMed).
+To run Pubrunner, you just need to provide it with a path to a biomedical text mining tool (e.g. a Github repo or a local directory). The flag --test tells Pubrunner to execute the test set. Omitting that gets Pubrunner to run the tool on the full corpus (which for Ab3P is PubMed).::
 
    $ pubrunner --test https://github.com/jakelever/Ab3P
 
