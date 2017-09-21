@@ -52,6 +52,11 @@ def main():
 
 	execute = not args.snakefileonly
 
+	print("------------")
+	print(" PubRunner ")
+	print("------------")
+	print("")
+
 	if os.path.isdir(args.codebase):
 		pubrunner.pubrun(args.codebase,args.test,execute)
 	elif args.codebase.startswith('https://github.com/'):

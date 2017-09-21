@@ -71,7 +71,6 @@ def processResourceSettings(toolSettings,mode):
 	for resourceGroupName in ["all",mode]:
 		for resName in toolSettings["resources"][resourceGroupName]:
 			if isinstance(resName,dict):
-				print(resName)
 				assert len(resName.items()) == 1
 
 				# TODO: Rename resSettings and resInfo to be more meaningful
