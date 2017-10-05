@@ -339,7 +339,7 @@ def pubrun(directory,doTest,execute=False):
 				r = requests.post('http://www.pubrunner.org/update.php',headers=headers,files={'jsonFile': jsonData})
 				assert r.status_code == 200, "Error updating website with job status"
 			else:
-				print("Could not update website. Did not find %s under website-update in .pubrunner.settings.yml file")
+				print("Could not update website. Did not find %s under website-update in .pubrunner.settings.yml file" % toolName)
 
 
 
