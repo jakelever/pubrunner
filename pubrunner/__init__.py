@@ -4,6 +4,7 @@ from pubrunner.upload import *
 from pubrunner.FTPClient import *
 from pubrunner.getresource import *
 from pubrunner.pubrun import pubrun,cleanWorkingDirectory
+from pubrunner.convert import *
 
 def loadYAML(yamlFilename):
 	yamlData = None
