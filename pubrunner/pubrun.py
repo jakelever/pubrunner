@@ -53,17 +53,16 @@ def getResourceInfo(resource):
 
 	return resourceInfo
 
-def makeLocation(toolname,name,mode,createDir=False):
-	globalSettings = pubrunner.getGlobalSettings()
-	workspaceDir = os.path.expanduser(globalSettings["storage"]["workspace"])
-	thisDir = os.path.join(workspaceDir,toolname,mode,name)
-	if createDir and not os.path.isdir(thisDir):
-		os.makedirs(thisDir)
-	return thisDir
+#def makeLocation(toolname,name,mode,createDir=False):
+#	globalSettings = pubrunner.getGlobalSettings()
+#	workspaceDir = os.path.expanduser(globalSettings["storage"]["workspace"])
+#	thisDir = os.path.join(workspaceDir,toolname,mode,name)
+#	if createDir and not os.path.isdir(thisDir):
+#		os.makedirs(thisDir)
+#	return thisDir
 
-def processResourceSettings(toolSettings,mode):
+def processResourceSettings(toolSettings,mode,workingDirectory):
 	toolName = toolSettings['name']
-	locationMap = {}
 
 	newResourceList = []
 	preprocessingCommands = []
@@ -94,23 +93,34 @@ def processResourceSettings(toolSettings,mode):
 					command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*%s} --oFormat %s" % (inDir,inFilter,inFormat,outDir,inFilter,outFormat)
 					preprocessingCommands.append( command )
 
-					locationMap[nameToUse+"_UNCONVERTED"] = getResourceLocation(resName)
-					locationMap[nameToUse] = makeLocation(toolName,resName+"_CONVERTED",mode)
+					#locationMap[nameToUse+"_UNCONVERTED"] = getResourceLocation(resName)
+					#locationMap[nameToUse] = makeLocation(toolName,resName+"_CONVERTED",mode)
+		
+					resourceSymlink = os.path.join(workingDirectory,inDir)
+					if not os.path.islink(resourceSymlink):
+						os.symlink(getResourceLocation(resName), resourceSymlink)
+
+					newDirectory = os.path.join(workingDirectory,outDir)
+					if not os.path.isdir(newDirectory):
+						os.makedirs(newDirectory)
 				else:
-					locationMap[nameToUse] = getResourceLocation(resName)
+					resourceSymlink = os.path.join(workingDirectory,resName)
+					if not os.path.islink(resourceSymlink):
+						os.symlink(getResourceLocation(resName), resourceSymlink)
 					
 
 				newResourceList.append(resName)
 			else:
-				locationMap[resName] = getResourceLocation(resName)
+				resourceSymlink = os.path.join(workingDirectory,resName)
+				if not os.path.islink(resourceSymlink):
+					os.symlink(getResourceLocation(resName), resourceSymlink)
 				newResourceList.append(resName)
 
 	toolSettings["resources"] = newResourceList
 
 	toolSettings["build"] = preprocessingCommands + toolSettings["build"]
-	return locationMap
 
-def commandToSnakeMake(toolName,ruleName,command,locationMap,mode):
+def commandToSnakeMake(toolName,ruleName,command,mode,workingDirectory):
 	variables = extractVariables(command)
 
 	inputs = []
@@ -141,9 +151,9 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap,mode):
 
 		assert var.count('*') <= 1, "Cannot have more than one wildcard in variable: %s" % var
 
-		if not varname in locationMap:
-			locationMap[varname] = makeLocation(toolName,varname,mode)
-		loc = locationMap[varname]
+		#if not varname in locationMap:
+		#	locationMap[varname] = makeLocation(toolName,varname,mode)
+		loc = os.path.join(workingDirectory,varname)
 		loc = os.path.relpath(loc)
 
 		if pattern:
@@ -172,7 +182,8 @@ def commandToSnakeMake(toolName,ruleName,command,locationMap,mode):
 				firstOutputPattern = loc + '/' + pattern
 
 			# Make sure the directory is created
-			makeLocation(toolName,varname,mode,createDir=True)
+			if not os.path.isdir(loc):
+				os.makedirs(loc)
 
 			snakepattern = loc + '/' + pattern.replace('*','{f}')
 			outputs.append((repname,snakepattern))
@@ -265,6 +276,13 @@ def pubrun(directory,doTest,execute=False):
 
 	toolSettings = pubrunner.loadYAML(toolYamlFile)
 	toolName = toolSettings["name"]
+
+	workspacesDir = os.path.expanduser(globalSettings["storage"]["workspace"])
+	workingDirectory = os.path.join(workspacesDir,toolName,mode)
+	if not os.path.isdir(workingDirectory):
+		os.makedirs(workingDirectory)
+
+	print("Working directory: %s" % workingDirectory)
 	
 	if not "build" in toolSettings:
 		toolSettings["build"] = []
@@ -273,16 +291,17 @@ def pubrun(directory,doTest,execute=False):
 	if not mode in toolSettings["resources"]:
 		toolSettings["resources"][mode] = []
 
-	locationMap = processResourceSettings(toolSettings,mode)
+	processResourceSettings(toolSettings,mode,workingDirectory)
 
 	with open(os.path.join(os.path.dirname(__file__),'Snakefile.header')) as f:
 		snakefileHeader = f.read()
 
 	ruleDir = '.pubrunner'
-	if not os.path.isdir(ruleDir):
-		os.makedirs(ruleDir)
+	if os.path.isdir(ruleDir):
+		shutil.rmtree(ruleDir)
+	os.makedirs(ruleDir)
 
-	print("Building Snakefile")
+	print("Building Snakefiles")
 
 	with open(os.path.join(ruleDir,'Snakefile.resources'),'w') as f:
 		resourcesSnakeRule = generateGetResourceSnakeRule(toolSettings["resources"])
@@ -296,10 +315,10 @@ def pubrun(directory,doTest,execute=False):
 			commandExecutionList.append((commandGroup=="run",snakeFilePath,command))
 			with open(snakeFilePath,'w') as f:
 				ruleName = "RULE_%d" % (i+1)
-				snakecode = commandToSnakeMake(toolName, ruleName, command, locationMap, mode)
+				snakecode = commandToSnakeMake(toolName, ruleName, command, mode, workingDirectory)
 				f.write(snakefileHeader)
 				f.write(snakecode + "\n")
-	print("Completed Snakefile")
+	print("Completed Snakefiles")
 
 	if execute:
 		snakeFilePath = os.path.join(ruleDir,'Snakefile.resources')
