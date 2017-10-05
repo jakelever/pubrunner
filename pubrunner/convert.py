@@ -193,20 +193,6 @@ def processMedlineFile(pubmedFile):
 			# Important: clear the current element from memory to keep memory usage low
 			elem.clear()
 
-def generateCorpusFromPubmed(pubmedFile):
-	corpus = kindred.Corpus()
-	for doc in processMedlineFile(pubmedFile):
-		for t in doc["titleText"]:
-			d = kindred.Document(t,entities=[],sourceIDs={'pmid':doc["pmid"]})
-			corpus.addDocument(d)
-		for t in doc["abstractText"]:
-			d = kindred.Document(t,entities=[],sourceIDs={'pmid':doc["pmid"]})
-			corpus.addDocument(d)
-
-	parser = kindred.Parser()
-	parser.parse(corpus)
-
-	return corpus
 
 def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 	with bioc.iterwrite(biocFilename) as writer:
