@@ -159,8 +159,7 @@ def commandToSnakeMake(toolName,ruleName,command,mode,workingDirectory):
 		if pattern:
 			hasWildcard = True
 
-		repname = varname + str(startPos)
-		repname = repname.replace('.','_')
+		repname = varname.replace('.','_')
 		if vartype == 'IN' and not pattern:
 			inputs.append((repname,loc))
 			hasIn = True
