@@ -56,7 +56,6 @@ def getResourceInfo(resource):
 def makeLocation(toolname,name,mode,createDir=False):
 	globalSettings = pubrunner.getGlobalSettings()
 	workspaceDir = os.path.expanduser(globalSettings["storage"]["workspace"])
-	thisDir = os.path.join(workspaceDir,toolname,name)
 	thisDir = os.path.join(workspaceDir,toolname,mode,name)
 	if createDir and not os.path.isdir(thisDir):
 		os.makedirs(thisDir)
@@ -228,6 +227,30 @@ def generateGetResourceSnakeRule(resources):
 	ruleTxt += '\t\t"""\n\n'
 	return ruleTxt
 
+def cleanWorkingDirectory(directory,doTest,execute=False):
+	mode = "test" if doTest else "main"
+
+	globalSettings = pubrunner.getGlobalSettings()
+	os.chdir(directory)
+
+	toolYamlFile = 'pubrunner.yml'
+	if not os.path.isfile(toolYamlFile):
+		raise RuntimeError("Expected a %s file in root of codebase" % toolYamlFile)
+
+	toolSettings = pubrunner.loadYAML(toolYamlFile)
+	toolName = toolSettings["name"]
+
+	workspaceDir = os.path.expanduser(globalSettings["storage"]["workspace"])
+	workingDirectory = os.path.join(workspaceDir,toolName,mode)
+
+	if os.path.isdir(workingDirectory):
+		print("Removing working directory for tool %s" % toolName)
+		print("Directory: %s" % workingDirectory)
+		shutil.rmtree(workingDirectory)
+	else:
+		print("No working directory to remove for tool %s" % toolName)
+		print("Expected directory: %s" % workingDirectory)
+		
 
 def pubrun(directory,doTest,execute=False):
 	mode = "test" if doTest else "main"
