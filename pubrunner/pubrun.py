@@ -104,7 +104,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					if not os.path.isdir(newDirectory):
 						os.makedirs(newDirectory)
 				else:
-					resourceSymlink = os.path.join(workingDirectory,resName)
+					resourceSymlink = os.path.join(workingDirectory,nameToUse)
 					if not os.path.islink(resourceSymlink):
 						os.symlink(getResourceLocation(resName), resourceSymlink)
 					
