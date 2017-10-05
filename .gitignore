@@ -20,6 +20,8 @@ downloaded/
 /.pubrunner.settings.yml
 
 /mypy
+/mypy2
+/mypy3
 
 resources/
 workspace/
