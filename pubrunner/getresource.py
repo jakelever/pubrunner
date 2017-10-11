@@ -36,23 +36,36 @@ def calcSHA256forDir(directory):
 		sha256s[filename] = sha256
 	return sha256s
 
-def download(url,out):
+def checkFileSuffixFilter(filename,fileSuffixFilter):
+	if fileSuffixFilter is None:
+		return True
+	elif filename.endswith('.tar.gz') or filename.endswith('.gz'):
+		return True
+	elif filename.endswith(fileSuffixFilter):
+		return True
+	else:
+	 	return False
+
+def download(url,out,fileSuffixFilter=None):
 	if url.startswith('ftp'):
 		url = url.replace("ftp://","")
 		hostname = url.split('/')[0]
 		path = "/".join(url.split('/')[1:])
 		with ftputil.FTPHost(hostname, 'anonymous', 'secret') as host:
-			downloadFTP(path,out,host)
+			downloadFTP(path,out,host,fileSuffixFilter)
 	elif url.startswith('http'):
-		downloadHTTP(url,out)
+		downloadHTTP(url,out,fileSuffixFilter)
 	else:
 		raise RuntimeError("Unsure how to download file. Expecting URL to start with ftp or http. Got: %s" % url)
 
-def downloadFTP(path,out,host):
+def downloadFTP(path,out,host,fileSuffixFilter=None):
 	if host.path.isfile(path):
 		remoteTimestamp = host.path.getmtime(path)
 		
 		doDownload = True
+		if not checkFileSuffixFilter(path,fileSuffixFilter):
+			doDownload = False
+
 		if os.path.isdir(out):
 			localTimestamp = os.path.getmtime(out)
 			if not remoteTimestamp > localTimestamp:
@@ -64,11 +77,11 @@ def downloadFTP(path,out,host):
 				if not remoteTimestamp > localTimestamp:
 					doDownload = False
 		if doDownload:
-			print("\tDownloading %s" % path)
+			print("  Downloading %s" % path)
 			didDownload = host.download(path,out)
 			os.utime(out,(remoteTimestamp,remoteTimestamp))
 		else:
-			print("\tSkipping %s" % path)
+			print("  Skipping %s" % path)
 
 	elif host.path.isdir(path):
 		basename = host.path.basename(path)
@@ -78,11 +91,14 @@ def downloadFTP(path,out,host):
 		for child in host.listdir(path):
 			srcFilename = host.path.join(path,child)
 			dstFilename = os.path.join(newOut,child)
-			downloadFTP(srcFilename,dstFilename,host)
+			downloadFTP(srcFilename,dstFilename,host,fileSuffixFilter)
 	else:
 		raise RuntimeError("Path (%s) is not a file or directory" % path) 
 
-def downloadHTTP(url,out):
+def downloadHTTP(url,out,fileSuffixFilter=None):
+	if not checkFileSuffixFilter(url,fileSuffixFilter):
+		return
+
 	fileAlreadyExists = os.path.isfile(out)
 
 	if fileAlreadyExists:
@@ -93,7 +109,7 @@ def downloadHTTP(url,out):
 	wget.download(url,out,bar=None)
 	if fileAlreadyExists:
 		afterHash = calcSHA256(out)
-		if beforeHash == afterHash: # File's haven't changed to move the modified date back
+		if beforeHash == afterHash: # File hasn't changed so move the modified date back
 			os.utime(out,(timestamp,timestamp))
 
 def gunzip(source,dest,deleteSource=False):
@@ -228,20 +244,24 @@ def getResource(resource):
 			urls = [resourceInfo['url']]
 		else:
 			urls = resourceInfo['url']
-
-		if os.path.isdir(thisResourceDir):
-			for url in urls:
-				basename = url.split('/')[-1]
-				assert isinstance(url,six.string_types), 'Each URL for the dir resource must be a string'
-				download(url,os.path.join(thisResourceDir,basename))
-		else:
-			os.makedirs(thisResourceDir)
-			for url in urls:
-				basename = url.split('/')[-1]
-				assert isinstance(url,six.string_types), 'Each URL for the dir resource must be a string'
-				download(url,os.path.join(thisResourceDir,basename))
 		
+		if 'filter' in resourceInfo:
+			fileSuffixFilter = resourceInfo['filter']
+		else:
+			fileSuffixFilter = None
+
+		if not os.path.isdir(thisResourceDir):
+			print("  Creating directory...")
+			os.makedirs(thisResourceDir)
+
+		print("  Starting download...")
+		for url in urls:
+			basename = url.split('/')[-1]
+			assert isinstance(url,six.string_types), 'Each URL for the dir resource must be a string'
+			download(url,os.path.join(thisResourceDir,basename),fileSuffixFilter)
+
 		if 'unzip' in resourceInfo and resourceInfo['unzip'] == True:
+			print("  Unzipping archives...")
 			for filename in os.listdir(thisResourceDir):
 				if filename.endswith('.tar.gz') or filename.endswith('.tgz'):
 					tar = tarfile.open(os.path.join(thisResourceDir,filename), "r:gz")
@@ -250,8 +270,17 @@ def getResource(resource):
 				elif filename.endswith('.gz'):
 					unzippedName = filename[:-3]
 					gunzip(os.path.join(thisResourceDir,filename), os.path.join(thisResourceDir,unzippedName), deleteSource=True)
-		
+
+		if not fileSuffixFilter is None:
+			print("  Removing files not matching filter (%s)..." % fileSuffixFilter)
+			for root, subdirs, files in os.walk(thisResourceDir):
+				for f in files:
+					if not f.endswith(fileSuffixFilter):
+						fullpath = os.path.join(root,f)
+						os.unlink(fullpath)
+
 		if 'generatePubmedHashes' in resourceInfo and resourceInfo['generatePubmedHashes'] == True:
+			print("  Generating Pubmed hashes...")
 			hashDir = os.path.join(resourceDir,'pubmedHashes',resource)
 			if not os.path.isdir(hashDir):
 				os.makedirs(hashDir)
