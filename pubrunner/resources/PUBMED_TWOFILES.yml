@@ -6,4 +6,4 @@ type: dir
 format: pubmedxml
 filter: .xml
 unzip: True
-
+generatePubmedHashes: True

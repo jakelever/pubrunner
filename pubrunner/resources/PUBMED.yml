@@ -1,9 +1,9 @@
 name: PUBMED
 url:
   - ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline/
-#  - ftp://ftp.ncbi.nlm.nih.gov/pubmed/updatefiles/
+  - ftp://ftp.ncbi.nlm.nih.gov/pubmed/updatefiles/
 type: dir
 format: pubmedxml
 filter: .xml
 unzip: True
-
+generatePubmedHashes: True
