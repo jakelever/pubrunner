@@ -24,6 +24,7 @@ import ftputil
 from collections import OrderedDict
 import re
 import math
+import tarfile
 
 def calcSHA256(filename):
 	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
@@ -85,7 +86,7 @@ def downloadHTTP(url,out):
 	fileAlreadyExists = os.path.isfile(out)
 
 	if fileAlreadyExists:
-		timestamp = os.path.getmtime(source)
+		timestamp = os.path.getmtime(out)
 		beforeHash = calcSHA256(out)
 		os.unlink(out)
 
@@ -242,7 +243,11 @@ def getResource(resource):
 		
 		if 'unzip' in resourceInfo and resourceInfo['unzip'] == True:
 			for filename in os.listdir(thisResourceDir):
-				if filename.endswith('.gz'):
+				if filename.endswith('.tar.gz') or filename.endswith('.tgz'):
+					tar = tarfile.open(os.path.join(thisResourceDir,filename), "r:gz")
+					tar.extractall(thisResourceDir)
+					tar.close()
+				elif filename.endswith('.gz'):
 					unzippedName = filename[:-3]
 					gunzip(os.path.join(thisResourceDir,filename), os.path.join(thisResourceDir,unzippedName), deleteSource=True)
 		
@@ -253,7 +258,6 @@ def getResource(resource):
 
 			snakefile = thisResourceDir + ".hashes.SnakeFile"
 			generatePubmedHashes(thisResourceDir,hashDir)
-			print("Generated")
 
 		return thisResourceDir
 	else:
