@@ -23,6 +23,6 @@ downloaded/
 /mypy2
 /mypy3
 
-resources/
-workspace/
-out/
+/resources/
+/workspace/
+/out/

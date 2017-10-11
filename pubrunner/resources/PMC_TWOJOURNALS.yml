@@ -1,0 +1,7 @@
+name: PMC_TWOJOURNALS
+url:
+   - http://bcgsc.ca/downloads/jlever/PMC-twojournals.tar.gz
+type: dir
+format: pmcxml
+filter: .nxml
+unzip: true
