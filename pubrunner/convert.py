@@ -213,12 +213,19 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 	    #for document in collection.documents:
 	     #       writer.writedocument(document)
 
-def bioc2txt(biocFilename, txtFilename):
-	with bioc.iterparse(biocFilename) as parser, codecs.open(txtFilename,'w','utf-8') as outF:
+def mergeBioc(biocFilename, outBiocWriter,idFilter):
+	with bioc.iterparse(biocFilename) as parser:
 		for biocDoc in parser:
-			for passage in biocDoc.passages:
-				outF.write(passage.text)
-				outF.write("\n\n")
+			if idFilter is None or biocDoc.id in idFilter:
+				outBiocWriter.writedocument(biocDoc)
+
+def bioc2txt(biocFilename, txtHandle,idFilter):
+	with bioc.iterparse(biocFilename) as parser:
+		for biocDoc in parser:
+			if idFilter is None or biocDoc.id in idFilter:
+				for passage in biocDoc.passages:
+					txtHandle.write(passage.text)
+					txtHandle.write("\n\n")
 
 def marcxml2bioc(marcxmlFilename,biocFilename):
 	with open(marcxmlFilename,'rb') as inF, bioc.iterwrite(biocFilename) as writer:
@@ -226,13 +233,15 @@ def marcxml2bioc(marcxmlFilename,biocFilename):
 			writeMarcXMLRecordToBiocFile(record,writer)
 
 		pymarc.map_xml(marcxml2bioc_helper,inF)
+
 def main():
 	acceptedInFormats = ['bioc','pubmedxml','marcxml']
 	acceptedOutFormats = ['bioc','txt']
 
 	parser = argparse.ArgumentParser(description='Tool to convert corpus between different formats')
-	parser.add_argument('--i',type=str,required=True,help="Document or directory of documents to convert")
+	parser.add_argument('--i',type=str,required=True,help="Comma-delimited list of documents to convert")
 	parser.add_argument('--iFormat',type=str,required=True,help="Format of input corpus. Options: %s" % "/".join(acceptedInFormats))
+	parser.add_argument('--idFilters',type=str,help="Optional set of ID files to filter the documents by")
 	parser.add_argument('--o',type=str,required=True,help="Where to store resulting converted docs")
 	parser.add_argument('--oFormat',type=str,required=True,help="Format for output corpus. Options: %s" % "/".join(acceptedOutFormats))
 
@@ -244,22 +253,43 @@ def main():
 	assert inFormat in acceptedInFormats, "%s is not an accepted input format. Options are: %s" % (inFormat, "/".join(acceptedInFormats))
 	assert outFormat in acceptedOutFormats, "%s is not an accepted output format. Options are: %s" % (outFormat, "/".join(acceptedOutFormats))
 
-	print("Starting conversion of %s." % args.i)
-	with tempfile.NamedTemporaryFile() as temp:
-		if inFormat == 'bioc':
-			shutil.copyfile(args.i,temp.name)
-		elif inFormat == 'pubmedxml':
-			pubmedxml2bioc(args.i,temp.name)
-		elif inFormat == 'marcxml':
-			marcxml2bioc(args.i,temp.name)
-		else:
-			raise RuntimeError("Unknown input format: %s" % inFormat)
+	inFiles = args.i.split(',')
+	if args.idFilters:
+		idFilterfiles = args.idFilters.split(',')
+		assert len(inFiles) == len(idFilterfiles), "There must be the same number of input files as idFilters files"
+	else:
+		idFilterfiles = [ None for _ in inFiles ]
 
-		if outFormat == 'bioc':
-			shutil.copyfile(temp.name,args.o)
-		elif outFormat == 'txt':
-			bioc2txt(temp.name,args.o)
+	outBiocHandle,outTxtHandle = None,None
+
+	if outFormat == 'bioc':
+		outBiocHandle = bioc.BioCEncoderIter(args.o)
+	elif outFormat == 'txt':
+		outTxtHandle = codecs.open(args.o,'w','utf-8')
+
+	for inFile,idFilterfile in zip(inFiles,idFilterfiles):
+		if idFilterfile is None:
+			idFilter = None
 		else:
-			raise RuntimeError("Unknown output format: %s" % outFormat)
+			with open(idFilterfile) as f:
+				idFilter = set([ line.strip() for line in f ])
+
+		print("Starting conversion of %s." % inFile)
+		with tempfile.NamedTemporaryFile() as temp:
+			if inFormat == 'bioc':
+				shutil.copyfile(inFile,temp.name)
+			elif inFormat == 'pubmedxml':
+				pubmedxml2bioc(inFile,temp.name)
+			elif inFormat == 'marcxml':
+				marcxml2bioc(inFile,temp.name)
+			else:
+				raise RuntimeError("Unknown input format: %s" % inFormat)
+
+			if outFormat == 'bioc':
+				mergeBioc(temp.name,outBiocHandle,idFilter)
+			elif outFormat == 'txt':
+				bioc2txt(temp.name,outTxtHandle,idFilter)
+			else:
+				raise RuntimeError("Unknown output format: %s" % outFormat)
 	print("Output to %s complete." % args.o)
 
