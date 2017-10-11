@@ -2,6 +2,7 @@ import pubrunner
 import argparse
 import hashlib
 import json
+from collections import defaultdict
 
 def md5(text):
 	if isinstance(text,list):
@@ -13,25 +14,30 @@ def md5(text):
 
 def main():
 	parser = argparse.ArgumentParser(description='Calculate MD5 hashes for the different sections of a Pubmed file. Used to evaluate the Pubmed updates')
-	parser.add_argument('--pubmedXML',required=True,type=str,help='Pubmed XML file to calculate hashes for')
 	parser.add_argument('--outHashJSON',required=True,type=str,help='Output file (in JSON format) containing hashes associated with each PMID')
+	parser.add_argument('--pubmedXMLFiles',required=True,type=str,help='Comma-delimited Pubmed XML files to calculate hashes for')
 	args = parser.parse_args()
+	print(args)
 
-	allHashes = {}
-	for doc in pubrunner.processMedlineFile(args.pubmedXML):
-		pmid = doc['pmid']
+	pubmedXMLFiles = args.pubmedXMLFiles.split(',')
+	allHashes = defaultdict(dict)
+	docCount = 0
+	for f in pubmedXMLFiles:
+		for doc in pubrunner.processMedlineFile(f):
+			pmid = doc['pmid']
 
-		hashes = {}
-		hashes['pubYear'] = md5(doc['pubYear'])
-		hashes['titleText'] = md5(doc['titleText'])
-		hashes['abstractText'] = md5(doc['abstractText'])
+			hashes = {}
+			hashes['pubYear'] = md5(doc['pubYear'])
+			hashes['titleText'] = md5(doc['titleText'])
+			hashes['abstractText'] = md5(doc['abstractText'])
 
-		allHashes[pmid] = hashes
+			allHashes[f][pmid] = hashes
+			docCount += 1
 
 	with open(args.outHashJSON,'w') as f:
 		json.dump(allHashes,f,indent=2,sort_keys=True)
 
-	print("Hashes for %d documents written to %s" % (len(allHashes),args.outHashJSON))
+	print("Hashes for %d documents across %d Pubmed XML files written to %s" % (docCount,len(pubmedXMLFiles),args.outHashJSON))
 
 
 
