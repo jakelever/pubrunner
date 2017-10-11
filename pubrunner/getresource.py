@@ -23,6 +23,7 @@ import ftplib
 import ftputil
 from collections import OrderedDict
 import re
+import math
 
 def calcSHA256(filename):
 	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
@@ -103,6 +104,95 @@ def gunzip(source,dest,deleteSource=False):
 	if deleteSource:
 		os.unlink(source)
 	
+# https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
+def chunks(l, n):
+	"""Yield successive n-sized chunks from l."""
+	for i in range(0, len(l), n):
+		yield l[i:i + n]
+
+def generatePubmedHashes(inDir,outDir):
+	
+	#inDir = 'PUBMED'
+	#outDir = 'PUBMED.hashes'
+
+	templateCommand = "'pubmed_hash --pubmedXMLFiles INFILE --outHashJSON OUTFILE'"
+	templateOutFile = '%s/hashes.GROUPNO' % outDir
+
+	ruleTxt = "rule RULE_GROUPNO:\n"
+	ruleTxt += "\tinput:\n"
+	ruleTxt += "\t\tINPUTS\n"
+	ruleTxt += "\toutput:\n"
+	#ruleTxt += "\t\t'%s'\n" % templateOutFile.replace("'","\\'")
+	ruleTxt += "\t\tOUTPUTS\n"
+	ruleTxt += "\tshell:\n"
+	#ruleTxt += "\t\t'%s'\n" % templateCommand.replace("'","\\'")
+	ruleTxt += "\t\tCOMMANDS\n"
+
+	allRules = []
+
+	expectedOutfiles = []
+
+	files = sorted([ os.path.join(inDir,f) for f in os.listdir(inDir) ])
+	chunkSize = int(math.ceil(len(files) / 100))
+	for groupNo,group in enumerate(chunks(files,chunkSize)):
+		inputFiles,outputFiles,commands = [],[],[]
+		for fileNo,filename in enumerate(group):
+			outFile = "%s.json" % os.path.join(outDir,os.path.basename(filename))
+			inputFiles.append("IN%04d='%s'" % (fileNo,filename))
+			outputFiles.append("OUT%04d='%s'" % (fileNo,outFile))
+			expectedOutfiles.append(outFile)
+			
+			command = templateCommand
+			command = command.replace("INFILE",'{input.IN%04d}' % fileNo)
+			command = command.replace("OUTFILE",'{output.OUT%04d}' % fileNo)
+			commands.append(command)
+			
+		inputFilesTxt = ',\n\t\t'.join(inputFiles)
+		outputFilesTxt = ',\n\t\t'.join(outputFiles)
+		commandsTxt = ',\n\t\t'.join(commands)
+		
+		thisRule = ruleTxt
+		thisRule = thisRule.replace('GROUPNO',"%04d" % groupNo)
+		thisRule = thisRule.replace('INPUTS',inputFilesTxt)
+		thisRule = thisRule.replace('OUTPUTS',outputFilesTxt)
+		thisRule = thisRule.replace('COMMANDS',commandsTxt)
+
+		#allOutputFiles.append(templateOutFile.replace('GROUPNO',"%04d" % groupNo))
+		allRules.append(thisRule)
+		#break
+
+	masterRule = "rule RULE_ALL:\n"
+	masterRule += "\tinput:\n"
+	masterRule += "\t\tALL_OUTPUT_FILES\n"
+	ALL_OUTPUT_FILES = ',\n\t\t'.join( [ "'%s'" % f for f in expectedOutfiles ] )
+	masterRule = masterRule.replace('ALL_OUTPUT_FILES', ALL_OUTPUT_FILES)
+
+	allRules = [masterRule] + allRules
+
+	snakeFilePath = 'tmpSnakeFile'
+	with open(snakeFilePath,'w') as f:
+		for r in allRules:
+			f.write(r)
+			f.write("\n\n")
+
+	globalSettings = pubrunner.getGlobalSettings()
+	
+	clusterFlags = ""
+	if False and "cluster" in globalSettings:
+		assert "options" in globalSettings["cluster"], "Options must also be provided in the cluster settings, e.g. qsub"
+		jobs = 1
+		if "jobs" in globalSettings["cluster"]:
+			jobs = int(globalSettings["cluster"]["jobs"])
+		clusterFlags = "--cluster '%s' --jobs %d --latency-wait 60" % (globalSettings["cluster"]["options"],jobs)
+
+	print("\nRunning pubmed_hash commands")
+	makecommand = "snakemake %s -s %s" % (clusterFlags,snakeFilePath)
+
+	retval = subprocess.call(shlex.split(makecommand))
+	if retval != 0:
+		raise RuntimeError("Snake make call FAILED for command: %s . (file:%s)" % (command,snakeFilePath))
+	
+
 
 def getResource(resource):
 	print("Fetching resource: %s" % resource)
@@ -155,6 +245,15 @@ def getResource(resource):
 				if filename.endswith('.gz'):
 					unzippedName = filename[:-3]
 					gunzip(os.path.join(thisResourceDir,filename), os.path.join(thisResourceDir,unzippedName), deleteSource=True)
+		
+		if 'generatePubmedHashes' in resourceInfo and resourceInfo['generatePubmedHashes'] == True:
+			hashDir = os.path.join(resourceDir,'pubmedHashes',resource)
+			if not os.path.isdir(hashDir):
+				os.makedirs(hashDir)
+
+			snakefile = thisResourceDir + ".hashes.SnakeFile"
+			generatePubmedHashes(thisResourceDir,hashDir)
+			print("Generated")
 
 		return thisResourceDir
 	else:
