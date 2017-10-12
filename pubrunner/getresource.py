@@ -132,7 +132,7 @@ def generatePubmedHashes(inDir,outDir):
 	#inDir = 'PUBMED'
 	#outDir = 'PUBMED.hashes'
 
-	templateCommand = "'pubmed_hash --pubmedXMLFiles INFILE --outHashJSON OUTFILE'"
+	templateCommand = "pubmed_hash --pubmedXMLFiles INFILE --outHashJSON OUTFILE"
 	templateOutFile = '%s/hashes.GROUPNO' % outDir
 
 	ruleTxt = "rule RULE_GROUPNO:\n"
@@ -143,7 +143,9 @@ def generatePubmedHashes(inDir,outDir):
 	ruleTxt += "\t\tOUTPUTS\n"
 	ruleTxt += "\tshell:\n"
 	#ruleTxt += "\t\t'%s'\n" % templateCommand.replace("'","\\'")
+	ruleTxt += "\t\t\"\"\"\n"
 	ruleTxt += "\t\tCOMMANDS\n"
+	ruleTxt += "\t\t\"\"\"\n"
 
 	allRules = []
 
@@ -157,7 +159,10 @@ def generatePubmedHashes(inDir,outDir):
 			outFile = "%s.json" % os.path.join(outDir,os.path.basename(filename))
 			inputFiles.append("IN%04d='%s'" % (fileNo,filename))
 			outputFiles.append("OUT%04d='%s'" % (fileNo,outFile))
-			expectedOutfiles.append(outFile)
+
+			# Only add one per batch
+			if fileNo == (len(group)-1):
+				expectedOutfiles.append(outFile)
 			
 			command = templateCommand
 			command = command.replace("INFILE",'{input.IN%04d}' % fileNo)
@@ -166,7 +171,7 @@ def generatePubmedHashes(inDir,outDir):
 			
 		inputFilesTxt = ',\n\t\t'.join(inputFiles)
 		outputFilesTxt = ',\n\t\t'.join(outputFiles)
-		commandsTxt = ',\n\t\t'.join(commands)
+		commandsTxt = '\n\t\t'.join(commands)
 		
 		thisRule = ruleTxt
 		thisRule = thisRule.replace('GROUPNO',"%04d" % groupNo)
@@ -195,7 +200,7 @@ def generatePubmedHashes(inDir,outDir):
 	globalSettings = pubrunner.getGlobalSettings()
 	
 	clusterFlags = ""
-	if False and "cluster" in globalSettings:
+	if "cluster" in globalSettings:
 		assert "options" in globalSettings["cluster"], "Options must also be provided in the cluster settings, e.g. qsub"
 		jobs = 1
 		if "jobs" in globalSettings["cluster"]:
@@ -207,7 +212,7 @@ def generatePubmedHashes(inDir,outDir):
 
 	retval = subprocess.call(shlex.split(makecommand))
 	if retval != 0:
-		raise RuntimeError("Snake make call FAILED for command: %s . (file:%s)" % (command,snakeFilePath))
+		raise RuntimeError("Snake make call FAILED (file:%s)" % snakeFilePath)
 	
 
 
