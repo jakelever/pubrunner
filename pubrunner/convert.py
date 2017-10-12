@@ -146,6 +146,28 @@ def extractTextFromElemList(elemList):
 	
 	return mergedList
 
+def getMetaInfoForPMCArticle(articleElem):
+	# Attempt to extract the PubMed ID, PubMed Central IDs and DOIs
+	pmidText = ''
+	pmcidText = ''
+	doiText = ''
+	article_id = articleElem.findall('./front/article-meta/article-id') + articleElem.findall('./front-stub/article-id')
+	for a in article_id:
+		if a.text and 'pub-id-type' in a.attrib and a.attrib['pub-id-type'] == 'pmid':
+			pmidText = a.text.strip().replace('\n',' ')
+		if a.text and 'pub-id-type' in a.attrib and a.attrib['pub-id-type'] == 'pmc':
+			pmcidText = a.text.strip().replace('\n',' ')
+		if a.text and 'pub-id-type' in a.attrib and a.attrib['pub-id-type'] == 'doi':
+			doiText = a.text.strip().replace('\n',' ')
+			
+	# Attempt to get the publication date
+	pubdates = articleElem.findall('./front/article-meta/pub-date') + articleElem.findall('./front-stub/pub-date')
+	pubYear = ""
+	if len(pubdates) >= 1:
+		pubYear = pubdates[0].find("year").text.strip().replace('\n',' ')
+			
+	return pmidText,pmcidText,doiText,pubYear
+
 def processMedlineFile(pubmedFile):
 	for event, elem in etree.iterparse(pubmedFile, events=('start', 'end', 'start-ns', 'end-ns')):
 		if (event=='end' and elem.tag=='MedlineCitation'):
@@ -193,6 +215,80 @@ def processMedlineFile(pubmedFile):
 			# Important: clear the current element from memory to keep memory usage low
 			elem.clear()
 
+def processPMCFile(pmcFile):
+	with open(pmcFile, 'r') as openfile:
+
+		# Skip to the article element in the file
+		for event, elem in etree.iterparse(openfile, events=('start', 'end', 'start-ns', 'end-ns')):
+			if (event=='end' and elem.tag=='article'):
+			
+				pmidText,pmcidText,doiText,pubYear = getMetaInfoForPMCArticle(elem)
+
+				# We're going to process the main article along with any subarticles
+				# And if any of the subarticles have distinguishing IDs (e.g. PMID), then
+				# that'll be used, otherwise the parent article IDs will be used
+				subarticles = [elem] + elem.findall('./sub-article')
+				
+				for articleElem in subarticles:
+					if articleElem == elem:
+						# This is the main parent article. Just use its IDs
+						subPmidText,subPmcidText,subDoiText,subPubYear = pmidText,pmcidText,doiText,pubYear
+					else:
+						# Check if this subarticle has any distinguishing IDs and use them instead
+						subPmidText,subPmcidText,subDoiText,subPubYear = getMetaInfoForPMCArticle(articleElem)
+						if subPmidText=='' and subPmcidText == '' and subDoiText == '':
+							subPmidText,subPmcidText,subDoiText = pmidText,pmcidText,doiText
+						if subPubYear == '':
+							subPubYear = pubYear
+							
+						
+					# Information about the source of this text
+
+						
+					
+					# Extract the title of paper
+					title = articleElem.findall('./front/article-meta/title-group/article-title') + articleElem.findall('./front-stub/title-group/article-title')
+					assert len(title) <= 1
+					titleText = extractTextFromElemList(title)
+					titleText = [ removeWeirdBracketsFromOldTitles(t) for t in titleText ]
+					
+					# Get the subtitle (if it's there)
+					subtitle = articleElem.findall('./front/article-meta/title-group/subtitle') + articleElem.findall('./front-stub/title-group/subtitle')
+					subtitleText = extractTextFromElemList(subtitle)
+					subtitleText = [ removeWeirdBracketsFromOldTitles(t) for t in subtitleText ]
+					
+					# Extract the abstract from the paper
+					abstract = articleElem.findall('./front/article-meta/abstract') + articleElem.findall('./front-stub/abstract')
+					abstractText = extractTextFromElemList(abstract)
+					
+					# Extract the full text from the paper as well as supplementaries and floating blocks of text
+					articleText = extractTextFromElemList(articleElem.findall('./body'))
+					backText = extractTextFromElemList(articleElem.findall('./back'))
+					floatingText = extractTextFromElemList(articleElem.findall('./floats-group'))
+					
+					document = {'pmid':subPmidText, 'pmcid':subPmcidText, 'doi':subDoiText, 'pubYear':subPubYear}
+
+					textSources = {}
+					textSources['titleText'] = titleText
+					textSources['subtitleText'] = subtitleText
+					textSources['abstractText'] = abstractText
+					textSources['articleText'] = articleText
+					textSources['backText'] = backText
+					textSources['floatingText'] = floatingText
+
+					for k in textSources.keys():
+						tmp = textSources[k]
+						tmp = [ t for t in tmp if len(t) > 0 ]
+						tmp = [ htmlUnescape(t) for t in tmp ]
+						tmp = [ removeBracketsWithoutWords(t) for t in tmp ]
+						textSources[k] = tmp
+
+					document['textSources'] = textSources
+					yield document
+			
+				# Less important here (compared to abstracts) as each article file is not too big
+				elem.clear()
+
 
 def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 	with bioc.iterwrite(biocFilename) as writer:
@@ -210,8 +306,23 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 				biocDoc.add_passage(passage)
 
 			writer.writedocument(biocDoc)
-	    #for document in collection.documents:
-	     #       writer.writedocument(document)
+
+def pmcxml2bioc(pmcxmlFilename, biocFilename):
+	with bioc.iterwrite(biocFilename) as writer:
+		for pmcDoc in processPMCFile(pmcxmlFilename):
+			biocDoc = bioc.BioCDocument()
+			biocDoc.id = pmcDoc["pmid"]
+
+			offset = 0
+			for groupName,textSourceGroup in pmcDoc["textSources"].items():
+				for textSource in textSourceGroup:
+					passage = bioc.BioCPassage()
+					passage.text = textSource
+					passage.offset = offset
+					offset += len(textSource)
+					biocDoc.add_passage(passage)
+
+			writer.writedocument(biocDoc)
 
 def mergeBioc(biocFilename, outBiocWriter,idFilter):
 	with bioc.iterparse(biocFilename) as parser:
@@ -235,7 +346,7 @@ def marcxml2bioc(marcxmlFilename,biocFilename):
 		pymarc.map_xml(marcxml2bioc_helper,inF)
 
 def main():
-	acceptedInFormats = ['bioc','pubmedxml','marcxml']
+	acceptedInFormats = ['bioc','pubmedxml','marcxml','pmcxml']
 	acceptedOutFormats = ['bioc','txt']
 
 	parser = argparse.ArgumentParser(description='Tool to convert corpus between different formats')
@@ -282,6 +393,8 @@ def main():
 				pubmedxml2bioc(inFile,temp.name)
 			elif inFormat == 'marcxml':
 				marcxml2bioc(inFile,temp.name)
+			elif inFormat == 'pmcxml':
+				pmcxml2bioc(inFile,temp.name)
 			else:
 				raise RuntimeError("Unknown input format: %s" % inFormat)
 
