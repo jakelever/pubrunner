@@ -53,13 +53,14 @@ if not missingVariables == []:
 	print("This Snakefile uses environmental variables as input parameters")
 	print()
 	print("Example usage:")
-	print("  INDIR=PMCOA INFORMAT=pmcxml OUTDIR=PMCOA-converted OUTFORMAT=txt CHUNKSIZE=10000 snakemake -s %s" % __file__)
+	print("  INDIR=PMCOA INFORMAT=pmcxml OUTDIR=PMCOA-converted OUTFORMAT=txt CHUNKSIZE=10000 [PMIDDIR=PMIDDIR] snakemake -s %s" % __file__)
 	print()
 	print("  INDIR is the input directory of the resource (e.g. Pubmed, PMC, etc)")
 	print("  INFORMAT is the input format (e.g. pubmedxml, pmcxml, marcxml, etc)")
 	print("  OUTDIR is the output directory for the converted files")
 	print("  OUTFORMAT is the output format for the converted data (e.g. bioc, txt)")
 	print("  CHUNKSIZE is the number of files to group into an output file")
+	print("  PMIDDIR is an optional argument that gives a directory containing PMIDs to include with one file for each file in INDIR")
 	sys.exit(1)
 
 inDir = os.environ.get("INDIR")
@@ -67,6 +68,7 @@ inFormat = os.environ.get("INFORMAT")
 outDir = os.environ.get("OUTDIR")
 outFormat = os.environ.get("OUTFORMAT")
 maxChunkSize = int(os.environ.get("CHUNKSIZE"))
+pmidDir = os.environ.get("PMIDDIR")
 outPattern = os.path.basename(inDir) + ".converted.%08d." + outFormat
 chunkFile = outDir + '.json'
 
@@ -149,5 +151,12 @@ for outputFile,chunk in outputFilesWithChunks.items():
 		run:
 			inputFileList = list(input)
 			outputFile = output[0]
-			pubrunner.convertFiles(inputFileList,inFormat,outputFile,outFormat)
-		
+			if pmidDir is None:
+				pubrunner.convertFiles(inputFileList,inFormat,outputFile,outFormat)
+			else:
+				baseInputs = [ os.path.basename(f) for f in inputFileList ]
+				pmidFilterfiles = [ os.path.join(pmidDir,f+'.pmids') for f in baseInputs ]
+				for f in pmidFilterfiles:
+					assert os.path.isfile(f), "Could not find the PMID file: %s" % f
+				pubrunner.convertFiles(inputFileList,inFormat,outputFile,outFormat,pmidFilterfiles)
+				
