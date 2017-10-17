@@ -345,38 +345,18 @@ def marcxml2bioc(marcxmlFilename,biocFilename):
 
 		pymarc.map_xml(marcxml2bioc_helper,inF)
 
-def main():
-	acceptedInFormats = ['bioc','pubmedxml','marcxml','pmcxml']
-	acceptedOutFormats = ['bioc','txt']
-
-	parser = argparse.ArgumentParser(description='Tool to convert corpus between different formats')
-	parser.add_argument('--i',type=str,required=True,help="Comma-delimited list of documents to convert")
-	parser.add_argument('--iFormat',type=str,required=True,help="Format of input corpus. Options: %s" % "/".join(acceptedInFormats))
-	parser.add_argument('--idFilters',type=str,help="Optional set of ID files to filter the documents by")
-	parser.add_argument('--o',type=str,required=True,help="Where to store resulting converted docs")
-	parser.add_argument('--oFormat',type=str,required=True,help="Format for output corpus. Options: %s" % "/".join(acceptedOutFormats))
-
-	args = parser.parse_args()
-
-	inFormat = args.iFormat.lower()
-	outFormat = args.oFormat.lower()
-
-	assert inFormat in acceptedInFormats, "%s is not an accepted input format. Options are: %s" % (inFormat, "/".join(acceptedInFormats))
-	assert outFormat in acceptedOutFormats, "%s is not an accepted output format. Options are: %s" % (outFormat, "/".join(acceptedOutFormats))
-
-	inFiles = args.i.split(',')
-	if args.idFilters:
-		idFilterfiles = args.idFilters.split(',')
-		assert len(inFiles) == len(idFilterfiles), "There must be the same number of input files as idFilters files"
-	else:
-		idFilterfiles = [ None for _ in inFiles ]
-
+acceptedInFormats = ['bioc','pubmedxml','marcxml','pmcxml']
+acceptedOutFormats = ['bioc','txt']
+def convertFiles(inFiles,inFormat,outFile,outFormat,idFilterfiles=None):
 	outBiocHandle,outTxtHandle = None,None
 
 	if outFormat == 'bioc':
-		outBiocHandle = bioc.BioCEncoderIter(args.o)
+		outBiocHandle = bioc.BioCEncoderIter(outFile)
 	elif outFormat == 'txt':
-		outTxtHandle = codecs.open(args.o,'w','utf-8')
+		outTxtHandle = codecs.open(outFile,'w','utf-8')
+
+	if idFilterfiles is None:
+		idFilterfiles = [ None for _ in inFiles ]
 
 	for inFile,idFilterfile in zip(inFiles,idFilterfiles):
 		if idFilterfile is None:
@@ -404,5 +384,30 @@ def main():
 				bioc2txt(temp.name,outTxtHandle,idFilter)
 			else:
 				raise RuntimeError("Unknown output format: %s" % outFormat)
-	print("Output to %s complete." % args.o)
+	print("Output to %s complete." % outFile)
+
+def main():
+	parser = argparse.ArgumentParser(description='Tool to convert corpus between different formats')
+	parser.add_argument('--i',type=str,required=True,help="Comma-delimited list of documents to convert")
+	parser.add_argument('--iFormat',type=str,required=True,help="Format of input corpus. Options: %s" % "/".join(acceptedInFormats))
+	parser.add_argument('--idFilters',type=str,help="Optional set of ID files to filter the documents by")
+	parser.add_argument('--o',type=str,required=True,help="Where to store resulting converted docs")
+	parser.add_argument('--oFormat',type=str,required=True,help="Format for output corpus. Options: %s" % "/".join(acceptedOutFormats))
+
+	args = parser.parse_args()
+
+	inFormat = args.iFormat.lower()
+	outFormat = args.oFormat.lower()
+
+	assert inFormat in acceptedInFormats, "%s is not an accepted input format. Options are: %s" % (inFormat, "/".join(acceptedInFormats))
+	assert outFormat in acceptedOutFormats, "%s is not an accepted output format. Options are: %s" % (outFormat, "/".join(acceptedOutFormats))
+
+	inFiles = args.i.split(',')
+	if args.idFilters:
+		idFilterfiles = args.idFilters.split(',')
+		assert len(inFiles) == len(idFilterfiles), "There must be the same number of input files as idFilters files"
+	else:
+		idFilterfiles = None
+
+	convertFiles(inFiles,inFormat,args.o,outFormat,idFilterfiles)
 
