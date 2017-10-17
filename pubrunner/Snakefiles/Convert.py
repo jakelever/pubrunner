@@ -62,19 +62,13 @@ if not missingVariables == []:
 	print("  CHUNKSIZE is the number of files to group into an output file")
 	sys.exit(1)
 
-#inDir = 'PMCOA_TWOJOURNALS'
 inDir = os.environ.get("INDIR")
 inFormat = os.environ.get("INFORMAT")
-#outDir = 'PMCOA_TWOJOURNAL.converted'
 outDir = os.environ.get("OUTDIR")
 outFormat = os.environ.get("OUTFORMAT")
 maxChunkSize = int(os.environ.get("CHUNKSIZE"))
-#outPattern = 'converted.%04d.txt'
-#outPattern = os.environ.get("OUTPATTERN")
 outPattern = os.path.basename(inDir) + ".converted.%08d." + outFormat
-#chunkFile = 'PMCOA_TWOJOURNALS.converted.chunks.json'
 chunkFile = outDir + '.json'
-
 
 files = findFiles(inDir)
 
@@ -103,12 +97,6 @@ if sys.argv[0] == snakemakeExec:
 	with open('rand%08d.txt' % randNum,'w') as f:
 		f.write(str(sys.argv) + "\n")
 
-
-	# Next we'll find out how many files are assigned to each chunk
-	#assignedChunkSizes = Counter()
-	#for outputFile in assignedChunks.values():
-	#	assignedChunkSizes[outputFile] += 1
-
 	if len(assignedChunks) > 0:
 		# We're just take the last chunk alphabetically
 		currentChunk = sorted(assignedChunks.values())[-1]
@@ -129,9 +117,6 @@ if sys.argv[0] == snakemakeExec:
 			assignedChunks[f] = currentChunk
 			dirtyOutputFiles.add(currentChunk)
 			currentChunkSize += 1
-
-	#print(assignedChunks)
-	#sys.exit(0)
 
 	print(dirtyOutputFiles)
 	# Remove any dirty files to force them to be recalculated
@@ -158,22 +143,11 @@ rule all:
 	input: expectedFiles
 
 for outputFile,chunk in outputFilesWithChunks.items():
-	#commaDelimitedInputFiles = ",".join(chunk).replace('(','\\(').replace(')','\\)')
 	rule:
 		input: chunk
 		output: outputFile
-		#shell: "pubrunner_convert --i $(echo '{input}' | tr ' ' ',') --iFormat %s --o {output} --oFormat %s" % (inFormat,outFormat)
 		run:
 			inputFileList = list(input)
 			outputFile = output[0]
 			pubrunner.convertFiles(inputFileList,inFormat,outputFile,outFormat)
 		
-	
-	#commaDelimitedInputFiles = ",".join(chunk).replace('(','\\(').replace(')','\\)')
-		#shell:
-		#	"""
-		#		echo '{commaDelimitedInputFiles}' | wc > {output}
-		#	"""
-		#shell: "pubrunner_convert --i %s --iFormat %s --o {output} --oFormat %s" % (commaDelimitedInputFiles,inFormat,outFormat)
-		#shell: "echo '%s' > {output}" % ",".join(chunk).replace('(','\\(').replace(')','\\)')
-			#shell: "echo {input} > converted.txt"
