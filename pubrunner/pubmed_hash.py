@@ -13,6 +13,8 @@ def md5(text):
 	return m.hexdigest()
 
 def pubmed_hash(pubmedXMLFiles,outHashJSON):
+	if not isinstance(pubmedXMLFiles,list):
+		pubmedXMLFiles = [pubmedXMLFiles]
 
 	allHashes = defaultdict(dict)
 	docCount = 0
