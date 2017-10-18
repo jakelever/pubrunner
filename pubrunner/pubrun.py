@@ -67,6 +67,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 	newResourceList = []
 	#preprocessingCommands = []
 	conversions = []
+	resourcesWithHashes = []
 	for resourceGroupName in ["all",mode]:
 		for resName in toolSettings["resources"][resourceGroupName]:
 			if isinstance(resName,dict):
@@ -93,8 +94,10 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					outFormat = resSettings["format"]
 
 					#command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*%s} --oFormat %s" % (inDir,inFilter,inFormat,outDir,inFilter,outFormat)
-					conversionInfo = (inDir,inFormat,outDir,outFormat,chunkSize)
+					conversionInfo = (os.path.join(workingDirectory,inDir),inFormat,os.path.join(workingDirectory,outDir),outFormat,chunkSize)
 					conversions.append( conversionInfo )
+
+
 
 					#locationMap[nameToUse+"_UNCONVERTED"] = getResourceLocation(resName)
 					#locationMap[nameToUse] = makeLocation(toolName,resName+"_CONVERTED",mode)
@@ -103,6 +106,14 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					if not os.path.islink(resourceSymlink):
 						os.symlink(getResourceLocation(resName), resourceSymlink)
 
+					if "generatePubmedHashes" in resInfo and resInfo["generatePubmedHashes"] == True:
+						hashesSymlink = os.path.join(workingDirectory,inDir+'.hashes')
+						resourcesWithHashes.append(hashesSymlink)
+						if not os.path.islink(hashesSymlink):
+							hashesDir = getResourceLocation(resName)+'.hashes'
+							#assert os.path.isdir(hashesDir), "Couldn't find directory containing hashes for resource: %s. Looked in %s" % (resName,hashesDir)
+							os.symlink(hashesDir, hashesSymlink)
+
 					newDirectory = os.path.join(workingDirectory,outDir)
 					if not os.path.isdir(newDirectory):
 						os.makedirs(newDirectory)
@@ -110,7 +121,6 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					resourceSymlink = os.path.join(workingDirectory,nameToUse)
 					if not os.path.islink(resourceSymlink):
 						os.symlink(getResourceLocation(resName), resourceSymlink)
-					
 
 				newResourceList.append(resName)
 			else:
@@ -120,6 +130,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 				newResourceList.append(resName)
 
 	toolSettings["resources"] = newResourceList
+	toolSettings["pubmed_hashes"] = resourcesWithHashes
 
 	toolSettings["conversions"] = conversions
 
@@ -333,6 +344,13 @@ def pubrun(directory,doTest,execute=False):
 		print("\nFetching resources")
 		for res in toolSettings["resources"]:
 			pubrunner.getResource(res)
+
+		if toolSettings["pubmed_hashes"] != "":
+			print("\nUsing Pubmed Hashes to identify updates")
+			for hashDirectory in toolSettings["pubmed_hashes"]:
+				pmidDirectory = directory.rstrip('/') + '.pmids'
+				print("Using hashes in %s to identify PMID updates" % hashDirectory)
+				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
 
 		print("\nRunning conversions")
 

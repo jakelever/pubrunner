@@ -205,7 +205,7 @@ def getResource(resource):
 
 		if 'generatePubmedHashes' in resourceInfo and resourceInfo['generatePubmedHashes'] == True:
 			print("  Generating Pubmed hashes...")
-			hashDir = os.path.join(resourceDir,'pubmedHashes',resource)
+			hashDir = os.path.join(resourceDir,resource+'.hashes')
 			if not os.path.isdir(hashDir):
 				os.makedirs(hashDir)
 

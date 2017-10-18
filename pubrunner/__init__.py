@@ -6,6 +6,7 @@ from pubrunner.getresource import *
 from pubrunner.pubrun import pubrun,cleanWorkingDirectory
 from pubrunner.convert import *
 from pubrunner.pubmed_hash import pubmed_hash
+from pubrunner.gather_pmids import gatherPMIDs
 
 def loadYAML(yamlFilename):
 	yamlData = None
