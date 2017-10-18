@@ -108,7 +108,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 
 					if "generatePubmedHashes" in resInfo and resInfo["generatePubmedHashes"] == True:
 						hashesSymlink = os.path.join(workingDirectory,inDir+'.hashes')
-						resourcesWithHashes.append(hashesSymlink)
+						resourcesWithHashes.append(os.path.join(workingDirectory,inDir))
 						if not os.path.islink(hashesSymlink):
 							hashesDir = getResourceLocation(resName)+'.hashes'
 							#assert os.path.isdir(hashesDir), "Couldn't find directory containing hashes for resource: %s. Looked in %s" % (resName,hashesDir)
@@ -347,8 +347,9 @@ def pubrun(directory,doTest,execute=False):
 
 		if toolSettings["pubmed_hashes"] != "":
 			print("\nUsing Pubmed Hashes to identify updates")
-			for hashDirectory in toolSettings["pubmed_hashes"]:
-				pmidDirectory = directory.rstrip('/') + '.pmids'
+			for inDir in toolSettings["pubmed_hashes"]:
+				hashDirectory = inDir.rstrip('/') + '.hashes'
+				pmidDirectory = inDir.rstrip('/') + '.pmids'
 				print("Using hashes in %s to identify PMID updates" % hashDirectory)
 				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
 
@@ -356,6 +357,10 @@ def pubrun(directory,doTest,execute=False):
 
 		for inDir,inFormat,outDir,outFormat,chunkSize in toolSettings["conversions"]:
 			parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
+			if inDir in toolSettings["pubmed_hashes"]:
+				pmidDirectory = inDir.rstrip('/') + '.pmids'
+				assert os.path.isdir(pmidDirectory), "Cannot find PMIDs directory for resource. Tried: %s" % pmidDirectory
+				parameters['PMIDDIR'] = pmidDirectory
 			#parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat}
 			snakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
 			print(snakeFile, parameters)

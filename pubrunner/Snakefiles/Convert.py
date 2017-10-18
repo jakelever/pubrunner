@@ -145,8 +145,16 @@ rule all:
 	input: expectedFiles
 
 for outputFile,chunk in outputFilesWithChunks.items():
+	if pmidDir is None:
+		pmidFilterfiles = []
+	else:
+		baseInputs = [ os.path.basename(f) for f in chunk ]
+		pmidFilterfiles = [ os.path.join(pmidDir,f+'.pmids') for f in baseInputs ]
+		for f in pmidFilterfiles:
+			assert os.path.isfile(f), "Could not find the PMID file: %s" % f
+		
 	rule:
-		input: chunk
+		input: chunk, pmidFilterfiles = pmidFilterfiles
 		output: outputFile
 		run:
 			inputFileList = list(input)
@@ -154,9 +162,5 @@ for outputFile,chunk in outputFilesWithChunks.items():
 			if pmidDir is None:
 				pubrunner.convertFiles(inputFileList,inFormat,outputFile,outFormat)
 			else:
-				baseInputs = [ os.path.basename(f) for f in inputFileList ]
-				pmidFilterfiles = [ os.path.join(pmidDir,f+'.pmids') for f in baseInputs ]
-				for f in pmidFilterfiles:
-					assert os.path.isfile(f), "Could not find the PMID file: %s" % f
-				pubrunner.convertFiles(inputFileList,inFormat,outputFile,outFormat,pmidFilterfiles)
+				pubrunner.convertFiles(inputFileList,inFormat,outputFile,outFormat,list(input.pmidFilterfiles))
 				
