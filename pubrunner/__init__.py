@@ -33,3 +33,24 @@ def getGlobalSettings():
 		globalSettings = loadYAML(settingsYamlFile)
 
 	return globalSettings
+
+def launchSnakemake(snakeFilePath,useCluster=True,parameters={}):
+	globalSettings = pubrunner.getGlobalSettings()
+	
+	clusterFlags = ""
+	if useCluster and "cluster" in globalSettings:
+		assert "options" in globalSettings["cluster"], "Options must also be provided in the cluster settings, e.g. qsub"
+		jobs = 1
+		if "jobs" in globalSettings["cluster"]:
+			jobs = int(globalSettings["cluster"]["jobs"])
+		clusterFlags = "--cluster '%s' --jobs %d --latency-wait 60" % (globalSettings["cluster"]["options"],jobs)
+
+	print("\nRunning pubmed_hash commands")
+	makecommand = "snakemake %s -s %s" % (clusterFlags,snakeFilePath)
+
+	env = os.environ.copy()
+	env.update(parameters)
+
+	retval = subprocess.call(shlex.split(makecommand),env=env)
+	if retval != 0:
+		raise RuntimeError("Snake make call FAILED (file:%s)" % snakeFilePath)
