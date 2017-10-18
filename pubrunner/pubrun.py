@@ -65,7 +65,8 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 	toolName = toolSettings['name']
 
 	newResourceList = []
-	preprocessingCommands = []
+	#preprocessingCommands = []
+	conversions = []
 	for resourceGroupName in ["all",mode]:
 		for resName in toolSettings["resources"][resourceGroupName]:
 			if isinstance(resName,dict):
@@ -87,11 +88,13 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					inDir = nameToUse + "_UNCONVERTED"
 					inFormat = resInfo["format"]
 					inFilter = resInfo["filter"]
+					chunkSize = resInfo["chunkSize"]
 					outDir = nameToUse
 					outFormat = resSettings["format"]
 
-					command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*%s} --oFormat %s" % (inDir,inFilter,inFormat,outDir,inFilter,outFormat)
-					preprocessingCommands.append( command )
+					#command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*%s} --oFormat %s" % (inDir,inFilter,inFormat,outDir,inFilter,outFormat)
+					conversionInfo = (inDir,inFormat,outDir,outFormat,chunkSize)
+					conversions.append( conversionInfo )
 
 					#locationMap[nameToUse+"_UNCONVERTED"] = getResourceLocation(resName)
 					#locationMap[nameToUse] = makeLocation(toolName,resName+"_CONVERTED",mode)
@@ -118,7 +121,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 
 	toolSettings["resources"] = newResourceList
 
-	toolSettings["build"] = preprocessingCommands + toolSettings["build"]
+	toolSettings["conversions"] = conversions
 
 def commandToSnakeMake(toolName,ruleName,command,mode,workingDirectory):
 	variables = extractVariables(command)
@@ -302,9 +305,9 @@ def pubrun(directory,doTest,execute=False):
 
 	print("Building Snakefiles")
 
-	with open(os.path.join(ruleDir,'Snakefile.resources'),'w') as f:
-		resourcesSnakeRule = generateGetResourceSnakeRule(toolSettings["resources"])
-		f.write(resourcesSnakeRule)
+	#with open(os.path.join(ruleDir,'Snakefile.resources'),'w') as f:
+	#	resourcesSnakeRule = generateGetResourceSnakeRule(toolSettings["resources"])
+	#	f.write(resourcesSnakeRule)
 
 
 	commandExecutionList = []
@@ -320,12 +323,25 @@ def pubrun(directory,doTest,execute=False):
 	print("Completed Snakefiles")
 
 	if execute:
-		snakeFilePath = os.path.join(ruleDir,'Snakefile.resources')
-		print("\nRunning command to fetch resourcess")
-		makecommand = "snakemake -s %s" % (snakeFilePath)
-		retval = subprocess.call(shlex.split(makecommand))
-		if retval != 0:
-			raise RuntimeError("Snake make call FAILED for get resources")
+		#snakeFilePath = os.path.join(ruleDir,'Snakefile.resources')
+		#print("\nRunning command to fetch resourcess")
+		#makecommand = "snakemake -s %s" % (snakeFilePath)
+		#retval = subprocess.call(shlex.split(makecommand))
+		#if retval != 0:
+		#	raise RuntimeError("Snake make call FAILED for get resources")
+
+		print("\nFetching resources")
+		for res in toolSettings["resources"]:
+			pubrunner.getResource(res)
+
+		print("\nRunning conversions")
+
+		for inDir,inFormat,outDir,outFormat,chunkSize in toolSettings["conversions"]:
+			parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
+			#parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat}
+			snakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
+			print(snakeFile, parameters)
+			pubrunner.launchSnakemake(snakeFile,parameters=parameters)
 
 
 		clusterFlags = ""

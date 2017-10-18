@@ -6,4 +6,5 @@ type: dir
 format: pubmedxml
 filter: .xml
 unzip: True
+chunkSize: 1
 generatePubmedHashes: True
