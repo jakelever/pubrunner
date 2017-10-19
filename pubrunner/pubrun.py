@@ -77,7 +77,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 				resName,resSettings = list(resName.items())[0]
 				resInfo = getResourceInfo(resName)
 
-				allowed = ['rename','format']
+				allowed = ['rename','format','removePMCDuplicates']
 				for k in resSettings.keys():
 					assert k in allowed, "Unexpected attribute (%s) for resource %s" % (k,resName)
 
@@ -93,8 +93,19 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					outDir = nameToUse
 					outFormat = resSettings["format"]
 
+					removePMCDuplicates = False
+					if "removePMCDuplicates" in resInfo and resInfo["removePMCDuplicates"] == True:
+						removePMCDuplicates = True
+
 					#command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*%s} --oFormat %s" % (inDir,inFilter,inFormat,outDir,inFilter,outFormat)
 					conversionInfo = (os.path.join(workingDirectory,inDir),inFormat,os.path.join(workingDirectory,outDir),outFormat,chunkSize)
+					conversionInfo = {}
+					conversionInfo['inDir'] = os.path.join(workingDirectory,inDir)
+					conversionInfo['inFormat'] = inFormat
+					conversionInfo['outDir'] = os.path.join(workingDirectory,outDir)
+					conversionInfo['outFormat'] = outFormat
+					conversionInfo['chunkSize'] = chunkSize
+					conversionInfo['removePMCDuplicates'] = removePMCDuplicates
 					conversions.append( conversionInfo )
 
 
@@ -354,12 +365,17 @@ def pubrun(directory,doTest,execute=False):
 				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
 
 		print("\nRunning conversions")
-		for inDir,inFormat,outDir,outFormat,chunkSize in toolSettings["conversions"]:
+		for conversionInfo in toolSettings["conversions"]:
+			inDir,inFormat = conversionInfo['inDir'],conversionInfo['inFormat']
+			outDir,outFormat = conversionInfo['outDir'],conversionInfo['outFormat']
+			chunkSize,removePMCDuplicates = conversionInfo['chunkSize'],conversionInfo['removePMCDuplicates']
 			parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
+
 			if inDir in toolSettings["pubmed_hashes"]:
 				pmidDirectory = inDir.rstrip('/') + '.pmids'
 				assert os.path.isdir(pmidDirectory), "Cannot find PMIDs directory for resource. Tried: %s" % pmidDirectory
 				parameters['PMIDDIR'] = pmidDirectory
+
 			#parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat}
 			snakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
 			pubrunner.launchSnakemake(snakeFile,parameters=parameters)
