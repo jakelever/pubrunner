@@ -366,25 +366,9 @@ def pubrun(directory,doTest,execute=False):
 			print(snakeFile, parameters)
 			pubrunner.launchSnakemake(snakeFile,parameters=parameters)
 
-
-		clusterFlags = ""
-		if "cluster" in globalSettings:
-			assert "options" in globalSettings["cluster"], "Options must also be provided in the cluster settings, e.g. qsub"
-			jobs = 1
-			if "jobs" in globalSettings["cluster"]:
-				jobs = int(globalSettings["cluster"]["jobs"])
-			clusterFlags = "--cluster '%s' --jobs %d --latency-wait 60" % (globalSettings["cluster"]["options"],jobs)
-
 		for i,(isRunCommand,snakeFilePath,command) in enumerate(commandExecutionList):
 			print("\nRunning command %d: %s" % (i+1,command))
-			if isRunCommand:
-				makecommand = "snakemake %s -s %s" % (clusterFlags,snakeFilePath)
-			else:
-				makecommand = "snakemake -s %s" % (snakeFilePath)
-
-			retval = subprocess.call(shlex.split(makecommand))
-			if retval != 0:
-				raise RuntimeError("Snake make call FAILED for command: %s . (file:%s)" % (command,snakeFilePath))
+			pubrunner.launchSnakemake(snakeFilePath,useCluster=isRunCommand)
 		print("")
 
 		if "output" in toolSettings and mode != 'test':
