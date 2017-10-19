@@ -50,13 +50,19 @@ def launchSnakemake(snakeFilePath,useCluster=True,parameters={}):
 	
 	clusterFlags = ""
 	if useCluster and "cluster" in globalSettings:
-		assert "options" in globalSettings["cluster"], "Options must also be provided in the cluster settings, e.g. qsub"
+		clusterSettings = globalSettings["cluster"]
 		jobs = 1
 		if "jobs" in globalSettings["cluster"]:
 			jobs = int(globalSettings["cluster"]["jobs"])
-		clusterFlags = "--cluster '%s' --jobs %d --latency-wait 60" % (globalSettings["cluster"]["options"],jobs)
+		clusterFlags = "--jobs %d --latency-wait 60" % jobs
 
-	print("\nRunning pubmed_hash commands")
+		if "drmaa" in clusterSettings and clusterSettings["drmaa"] == True:
+			clusterFlags += ' --drmaa'
+		elif "options" in clusterSettings:
+			clusterFlags = "--cluster '%s'" % clusterSettings["options"]
+		else:
+			raise RuntimeError("Cluster must either have drmaa = true or provide options (e.g. using qsub)")
+
 	makecommand = "snakemake %s -s %s" % (clusterFlags,snakeFilePath)
 
 	env = os.environ.copy()
