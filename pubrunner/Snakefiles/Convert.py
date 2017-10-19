@@ -113,17 +113,14 @@ if sys.argv[0] == snakemakeExec:
 		if not f in assignedChunks:
 			if currentChunk is None or currentChunkSize >= maxChunkSize:
 				currentChunk = outputFileNamer.next()
-				print("NEW",currentChunk)
 				currentChunkSize = 0
 			
 			assignedChunks[f] = currentChunk
 			dirtyOutputFiles.add(currentChunk)
 			currentChunkSize += 1
 
-	print(dirtyOutputFiles)
 	# Remove any dirty files to force them to be recalculated
 	for dirtyOutputFile in dirtyOutputFiles:
-		print(dirtyOutputFile)
 		if os.path.isfile(dirtyOutputFile):
 			os.unlink(dirtyOutputFile)
 			print("Removing:", dirtyOutputFile)
