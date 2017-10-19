@@ -26,16 +26,6 @@ import re
 import math
 import tarfile
 
-def calcSHA256(filename):
-	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
-
-def calcSHA256forDir(directory):
-	sha256s = {}
-	for filename in os.listdir(directory):
-		sha256 = calcSHA256(os.path.join(directory,filename))
-		sha256s[filename] = sha256
-	return sha256s
-
 def checkFileSuffixFilter(filename,fileSuffixFilter):
 	if fileSuffixFilter is None:
 		return True
@@ -103,12 +93,12 @@ def downloadHTTP(url,out,fileSuffixFilter=None):
 
 	if fileAlreadyExists:
 		timestamp = os.path.getmtime(out)
-		beforeHash = calcSHA256(out)
+		beforeHash = pubrunner.calcSHA256(out)
 		os.unlink(out)
 
 	wget.download(url,out,bar=None)
 	if fileAlreadyExists:
-		afterHash = calcSHA256(out)
+		afterHash = pubrunner.calcSHA256(out)
 		if beforeHash == afterHash: # File hasn't changed so move the modified date back
 			os.utime(out,(timestamp,timestamp))
 

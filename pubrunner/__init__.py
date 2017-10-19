@@ -8,6 +8,16 @@ from pubrunner.convert import *
 from pubrunner.pubmed_hash import pubmed_hash
 from pubrunner.gather_pmids import gatherPMIDs
 
+def calcSHA256(filename):
+	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
+
+def calcSHA256forDir(directory):
+	sha256s = {}
+	for filename in os.listdir(directory):
+		sha256 = calcSHA256(os.path.join(directory,filename))
+		sha256s[filename] = sha256
+	return sha256s
+
 def loadYAML(yamlFilename):
 	yamlData = None
 	with open(yamlFilename,'r') as f:
