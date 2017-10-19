@@ -4,7 +4,6 @@ import re
 import json
 from collections import Counter,defaultdict
 import pubrunner
-import random
 import shutil
 
 # https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
@@ -94,10 +93,6 @@ if sys.argv[0] == snakemakeExec:
 	dirtyOutputFiles = set( [ assignedChunks[f] for f in missingFiles ] )
 	for f in missingFiles:
 		del assignedChunks[f]
-
-	randNum = random.randint(0,10000)
-	with open('rand%08d.txt' % randNum,'w') as f:
-		f.write(str(sys.argv) + "\n")
 
 	if len(assignedChunks) > 0:
 		# We're just take the last chunk alphabetically
