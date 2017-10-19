@@ -77,7 +77,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 				resName,resSettings = list(resName.items())[0]
 				resInfo = getResourceInfo(resName)
 
-				allowed = ['rename','format','removePMCDuplicates']
+				allowed = ['rename','format','removePMCOADuplicates']
 				for k in resSettings.keys():
 					assert k in allowed, "Unexpected attribute (%s) for resource %s" % (k,resName)
 
@@ -93,9 +93,9 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					outDir = nameToUse
 					outFormat = resSettings["format"]
 
-					removePMCDuplicates = False
-					if "removePMCDuplicates" in resSettings and resSettings["removePMCDuplicates"] == True:
-						removePMCDuplicates = True
+					removePMCOADuplicates = False
+					if "removePMCOADuplicates" in resSettings and resSettings["removePMCOADuplicates"] == True:
+						removePMCOADuplicates = True
 
 					#command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*%s} --oFormat %s" % (inDir,inFilter,inFormat,outDir,inFilter,outFormat)
 					conversionInfo = (os.path.join(workingDirectory,inDir),inFormat,os.path.join(workingDirectory,outDir),outFormat,chunkSize)
@@ -105,7 +105,6 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					conversionInfo['outDir'] = os.path.join(workingDirectory,outDir)
 					conversionInfo['outFormat'] = outFormat
 					conversionInfo['chunkSize'] = chunkSize
-					conversionInfo['removePMCDuplicates'] = removePMCDuplicates
 					conversions.append( conversionInfo )
 
 
@@ -119,7 +118,9 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 
 					if "generatePubmedHashes" in resInfo and resInfo["generatePubmedHashes"] == True:
 						hashesSymlink = os.path.join(workingDirectory,inDir+'.hashes')
-						resourcesWithHashes.append(os.path.join(workingDirectory,inDir))
+						hashesInfo = {'resourceDir':os.path.join(workingDirectory,inDir),'hashDir':hashesSymlink,'removePMCOADuplicates':removePMCOADuplicates}
+
+						resourcesWithHashes.append(hashesInfo)
 						if not os.path.islink(hashesSymlink):
 							hashesDir = getResourceLocation(resName)+'.hashes'
 							#assert os.path.isdir(hashesDir), "Couldn't find directory containing hashes for resource: %s. Looked in %s" % (resName,hashesDir)
@@ -373,29 +374,31 @@ def pubrun(directory,doTest,execute=False):
 			pubrunner.getResource(res)
 
 		pmidsFromPMCFile = None
-		needPMIDsFromPMC = any( conversionInfo['removePMCDuplicates'] for conversionInfo in toolSettings["conversions"] )
+		needPMIDsFromPMC = any( hashesInfo['removePMCOADuplicates'] for hashesInfo in toolSettings["pubmed_hashes"] )
 		if needPMIDsFromPMC:
 			print("\nGetting list of PMIDs in Pubmed Central")
 			pmidsFromPMCFile = downloadPMIDSFromPMC(workingDirectory)
 
-		if toolSettings["pubmed_hashes"] != "":
+		if toolSettings["pubmed_hashes"] != []:
 			print("\nUsing Pubmed Hashes to identify updates")
-			for inDir in toolSettings["pubmed_hashes"]:
-				hashDirectory = inDir.rstrip('/') + '.hashes'
-				pmidDirectory = inDir.rstrip('/') + '.pmids'
-				print("Using hashes in %s to identify PMID updates" % hashDirectory)
-				if pmidsFromPMCFile is None:
-					pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
-				else:
-					pubrunner.gatherPMIDs(hashDirectory,pmidDirectory,pmidExclusions=pmidsFromPMCFile)
+			for hashesInfo in toolSettings["pubmed_hashes"]:
+				hashDirectory = hashesInfo['hashDir']
+				removePMCOADuplicates = hashesInfo['removePMCOADuplicates']
 
+				pmidDirectory = hashesInfo["resourceDir"].rstrip('/') + '.pmids'
+				print("Using hashes in %s to identify PMID updates" % hashDirectory)
+				if removePMCOADuplicates:
+					assert not pmidsFromPMCFile is None
+					pubrunner.gatherPMIDs(hashDirectory,pmidDirectory,pmidExclusions=pmidsFromPMCFile)
+				else:
+					pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
 
 
 		print("\nRunning conversions")
 		for conversionInfo in toolSettings["conversions"]:
 			inDir,inFormat = conversionInfo['inDir'],conversionInfo['inFormat']
 			outDir,outFormat = conversionInfo['outDir'],conversionInfo['outFormat']
-			chunkSize,removePMCDuplicates = conversionInfo['chunkSize'],conversionInfo['removePMCDuplicates']
+			chunkSize = conversionInfo['chunkSize']
 			parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
 
 			if inDir in toolSettings["pubmed_hashes"]:
@@ -403,10 +406,6 @@ def pubrun(directory,doTest,execute=False):
 				assert os.path.isdir(pmidDirectory), "Cannot find PMIDs directory for resource. Tried: %s" % pmidDirectory
 				parameters['PMIDDIR'] = pmidDirectory
 
-			if removePMCDuplicates:
-				pass
-
-			#parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat}
 			snakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
 			pubrunner.launchSnakemake(snakeFile,parameters=parameters)
 
