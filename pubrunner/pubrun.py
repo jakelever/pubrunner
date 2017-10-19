@@ -25,7 +25,7 @@ import re
 import glob
 import requests
 import datetime
-
+import csv
 
 def extractVariables(command):
 	assert isinstance(command,six.string_types)
@@ -94,7 +94,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					outFormat = resSettings["format"]
 
 					removePMCDuplicates = False
-					if "removePMCDuplicates" in resInfo and resInfo["removePMCDuplicates"] == True:
+					if "removePMCDuplicates" in resSettings and resSettings["removePMCDuplicates"] == True:
 						removePMCDuplicates = True
 
 					#command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*%s} --oFormat %s" % (inDir,inFilter,inFormat,outDir,inFilter,outFormat)
@@ -286,6 +286,22 @@ def cleanWorkingDirectory(directory,doTest,execute=False):
 		print("No working directory to remove for tool %s" % toolName)
 		print("Expected directory: %s" % workingDirectory)
 		
+def downloadPMIDSFromPMC(workingDirectory):
+	url = 'ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_file_list.csv'
+	localFile = os.path.join(workingDirectory,'oa_file_list.csv')
+	pubrunner.download(url,localFile)
+
+	pmids = set()
+	with open(localFile) as csvfile:
+		reader = csv.DictReader(csvfile)
+		for row in reader:
+			pmid = row['PMID']
+			if pmid != '':
+				pmids.add(int(pmid))
+
+	os.unlink(localFile)
+
+	return pmids
 
 def pubrun(directory,doTest,execute=False):
 	mode = "test" if doTest else "main"
@@ -356,13 +372,24 @@ def pubrun(directory,doTest,execute=False):
 		for res in toolSettings["resources"]:
 			pubrunner.getResource(res)
 
+		pmidsFromPMCFile = None
+		needPMIDsFromPMC = any( conversionInfo['removePMCDuplicates'] for conversionInfo in toolSettings["conversions"] )
+		if needPMIDsFromPMC:
+			print("\nGetting list of PMIDs in Pubmed Central")
+			pmidsFromPMCFile = downloadPMIDSFromPMC(workingDirectory)
+
 		if toolSettings["pubmed_hashes"] != "":
 			print("\nUsing Pubmed Hashes to identify updates")
 			for inDir in toolSettings["pubmed_hashes"]:
 				hashDirectory = inDir.rstrip('/') + '.hashes'
 				pmidDirectory = inDir.rstrip('/') + '.pmids'
 				print("Using hashes in %s to identify PMID updates" % hashDirectory)
-				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
+				if pmidsFromPMCFile is None:
+					pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
+				else:
+					pubrunner.gatherPMIDs(hashDirectory,pmidDirectory,pmidExclusions=pmidsFromPMCFile)
+
+
 
 		print("\nRunning conversions")
 		for conversionInfo in toolSettings["conversions"]:
@@ -375,6 +402,9 @@ def pubrun(directory,doTest,execute=False):
 				pmidDirectory = inDir.rstrip('/') + '.pmids'
 				assert os.path.isdir(pmidDirectory), "Cannot find PMIDs directory for resource. Tried: %s" % pmidDirectory
 				parameters['PMIDDIR'] = pmidDirectory
+
+			if removePMCDuplicates:
+				pass
 
 			#parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat}
 			snakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')

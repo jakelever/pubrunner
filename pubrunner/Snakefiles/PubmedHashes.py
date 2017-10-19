@@ -54,7 +54,6 @@ for f in findFiles(inDir):
 		inAndOut.append((f,outFile))
 
 allOutFiles = [ outFile for inFile,outFile in inAndOut ]
-print('X',allOutFiles)
 
 rule all:
 	input: allOutFiles

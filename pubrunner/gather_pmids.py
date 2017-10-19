@@ -4,7 +4,7 @@ import json
 from collections import defaultdict
 import pubrunner
 
-def gatherPMIDs(inHashDir,outPMIDDir,whichHashes=None):
+def gatherPMIDs(inHashDir,outPMIDDir,whichHashes=None,pmidExclusions=None):
 	files = sorted([ os.path.join(inHashDir,f) for f in os.listdir(inHashDir) ])
 	hashes = {}
 	for filename in files:
@@ -37,6 +37,9 @@ def gatherPMIDs(inHashDir,outPMIDDir,whichHashes=None):
 		basename = os.path.basename(filename)
 		outName = os.path.join(outPMIDDir,basename+'.pmids')
 		pmids = sorted(filenameToPMIDs[filename])
+
+		if not pmidExclusions is None:
+			pmids = [ pmid for pmid in pmids if not pmid in pmidExclusions ]
 		
 		fileAlreadyExists = os.path.isfile(outName)
 		if fileAlreadyExists:
