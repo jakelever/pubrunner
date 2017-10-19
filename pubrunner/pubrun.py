@@ -354,7 +354,6 @@ def pubrun(directory,doTest,execute=False):
 				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
 
 		print("\nRunning conversions")
-
 		for inDir,inFormat,outDir,outFormat,chunkSize in toolSettings["conversions"]:
 			parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
 			if inDir in toolSettings["pubmed_hashes"]:
@@ -363,8 +362,8 @@ def pubrun(directory,doTest,execute=False):
 				parameters['PMIDDIR'] = pmidDirectory
 			#parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat}
 			snakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
-			print(snakeFile, parameters)
 			pubrunner.launchSnakemake(snakeFile,parameters=parameters)
+
 
 		for i,(isRunCommand,snakeFilePath,command) in enumerate(commandExecutionList):
 			print("\nRunning command %d: %s" % (i+1,command))
