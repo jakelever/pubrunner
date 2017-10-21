@@ -108,10 +108,6 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					conversions.append( conversionInfo )
 
 
-
-					#locationMap[nameToUse+"_UNCONVERTED"] = getResourceLocation(resName)
-					#locationMap[nameToUse] = makeLocation(toolName,resName+"_CONVERTED",mode)
-		
 					resourceSymlink = os.path.join(workingDirectory,inDir)
 					if not os.path.islink(resourceSymlink):
 						os.symlink(getResourceLocation(resName), resourceSymlink)
@@ -177,8 +173,6 @@ def commandToSnakeMake(toolName,ruleName,command,mode,workingDirectory):
 
 		assert var.count('*') <= 1, "Cannot have more than one wildcard in variable: %s" % var
 
-		#if not varname in locationMap:
-		#	locationMap[varname] = makeLocation(toolName,varname,mode)
 		loc = os.path.join(workingDirectory,varname)
 		loc = os.path.relpath(loc)
 
@@ -420,7 +414,7 @@ def pubrun(directory,doTest,execute=False):
 			if not isinstance(outputList,list):
 				outputList = [outputList]
 
-			outputLocList = [ locationMap[o] for o in outputList ]
+			outputLocList = [ os.path.join(workingDirectory,o) for o in outputList ]
 
 			dataurl = None
 			if "upload" in globalSettings:
