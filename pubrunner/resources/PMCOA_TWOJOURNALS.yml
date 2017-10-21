@@ -1,7 +1,8 @@
 name: PMCOA_TWOJOURNALS
 url:
-   - http://bcgsc.ca/downloads/jlever/PMC-twojournals.tar.gz
+   - http://bcgsc.ca/downloads/jlever/PMCOA_TWOJOURNALS.tar.gz
 type: dir
 format: pmcxml
 filter: .nxml
 unzip: true
+chunkSize: 100
