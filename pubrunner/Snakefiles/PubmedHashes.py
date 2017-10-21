@@ -55,6 +55,8 @@ for f in findFiles(inDir):
 
 allOutFiles = [ outFile for inFile,outFile in inAndOut ]
 
+localrules: all
+
 rule all:
 	input: allOutFiles
 
