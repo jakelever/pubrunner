@@ -16,36 +16,6 @@ import shutil
 import six
 import unicodedata
 
-def writeMarcXMLRecordToBiocFile(record,biocWriter):
-	metadata = record['008'].value()
-	language = metadata[35:38]
-	if language != 'eng':
-		return
-
-	recordid = record['001'].value()
-
-	title = record.title()
-	textSources = [title]
-
-	abstract = None
-	if '520' in record and 'a' in record['520']:
-		abstract = record['520']['a']
-		textSources.append(abstract)
-
-	#print recordid, language, title, abstract
-	biocDoc = bioc.BioCDocument()
-	biocDoc.id = recordid
-
-	offset = 0
-	for textSource in textSources:
-		if isinstance(textSource,six.string_types):
-			passage = bioc.BioCPassage()
-			passage.text = textSource
-			passage.offset = offset
-			offset += len(textSource)
-			biocDoc.add_passage(passage)
-
-	biocWriter.writedocument(biocDoc)
 
 # Remove empty brackets (that could happen if the contents have been removed already
 # e.g. for citation ( [3] [4] ) -> ( ) -> nothing
@@ -289,6 +259,40 @@ def processPMCFile(pmcFile):
 				# Less important here (compared to abstracts) as each article file is not too big
 				elem.clear()
 
+def trimSentenceLengths(text):
+	MAXLENGTH = 100000
+	return ".".join( line[:MAXLENGTH] for line in text.split('.') )
+
+def writeMarcXMLRecordToBiocFile(record,biocWriter):
+	metadata = record['008'].value()
+	language = metadata[35:38]
+	if language != 'eng':
+		return
+
+	recordid = record['001'].value()
+
+	title = record.title()
+	textSources = [title]
+
+	abstract = None
+	if '520' in record and 'a' in record['520']:
+		abstract = record['520']['a']
+		textSources.append(abstract)
+
+	#print recordid, language, title, abstract
+	biocDoc = bioc.BioCDocument()
+	biocDoc.id = recordid
+
+	offset = 0
+	for textSource in textSources:
+		if isinstance(textSource,six.string_types):
+			passage = bioc.BioCPassage()
+			passage.text = trimSentenceLengths(textSource)
+			passage.offset = offset
+			offset += len(textSource)
+			biocDoc.add_passage(passage)
+
+	biocWriter.writedocument(biocDoc)
 
 def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 	with bioc.iterwrite(biocFilename) as writer:
@@ -300,7 +304,7 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 			offset = 0
 			for textSource in pmDoc["titleText"] + pmDoc["abstractText"]:
 				passage = bioc.BioCPassage()
-				passage.text = textSource
+				passage.text = trimSentenceLengths(textSource)
 				passage.offset = offset
 				offset += len(textSource)
 				biocDoc.add_passage(passage)
@@ -317,7 +321,7 @@ def pmcxml2bioc(pmcxmlFilename, biocFilename):
 			for groupName,textSourceGroup in pmcDoc["textSources"].items():
 				for textSource in textSourceGroup:
 					passage = bioc.BioCPassage()
-					passage.text = textSource
+					passage.text = trimSentenceLengths(textSource)
 					passage.offset = offset
 					offset += len(textSource)
 					biocDoc.add_passage(passage)
