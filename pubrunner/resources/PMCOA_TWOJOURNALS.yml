@@ -5,4 +5,4 @@ type: dir
 format: pmcxml
 filter: .nxml
 unzip: true
-chunkSize: 100
+chunkSize: 250
