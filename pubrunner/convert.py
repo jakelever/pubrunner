@@ -260,7 +260,7 @@ def processPMCFile(pmcFile):
 				elem.clear()
 
 def trimSentenceLengths(text):
-	MAXLENGTH = 100000
+	MAXLENGTH = 90000
 	return ".".join( line[:MAXLENGTH] for line in text.split('.') )
 
 def writeMarcXMLRecordToBiocFile(record,biocWriter):
@@ -286,8 +286,9 @@ def writeMarcXMLRecordToBiocFile(record,biocWriter):
 	offset = 0
 	for textSource in textSources:
 		if isinstance(textSource,six.string_types):
+			textSource = trimSentenceLengths(textSource)
 			passage = bioc.BioCPassage()
-			passage.text = trimSentenceLengths(textSource)
+			passage.text = textSource
 			passage.offset = offset
 			offset += len(textSource)
 			biocDoc.add_passage(passage)
@@ -303,8 +304,9 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 	
 			offset = 0
 			for textSource in pmDoc["titleText"] + pmDoc["abstractText"]:
+				textSource = trimSentenceLengths(textSource)
 				passage = bioc.BioCPassage()
-				passage.text = trimSentenceLengths(textSource)
+				passage.text = textSource
 				passage.offset = offset
 				offset += len(textSource)
 				biocDoc.add_passage(passage)
@@ -320,8 +322,9 @@ def pmcxml2bioc(pmcxmlFilename, biocFilename):
 			offset = 0
 			for groupName,textSourceGroup in pmcDoc["textSources"].items():
 				for textSource in textSourceGroup:
+					textSource = trimSentenceLengths(textSource)
 					passage = bioc.BioCPassage()
-					passage.text = trimSentenceLengths(textSource)
+					passage.text = textSource
 					passage.offset = offset
 					offset += len(textSource)
 					biocDoc.add_passage(passage)
