@@ -1,0 +1,16 @@
+name: TextMiningCounter
+version: 0.1
+url: https://github.com/jakelever/pubrunner/tree/master/examples/TextMiningCounter
+mode: complete
+resources:
+   main:
+      - PUBMED:
+         format: txt
+   test:
+      - PUBMED_TWOFILES:
+         format: txt
+         rename: PUBMED
+run:
+   - python Count.py --inFile {IN:PUBMED/*} --outFile {OUT:counts/*.txt}
+   - python Sum.py --inDir {IN:counts} --outFile {OUT:textminingcount.txt}
+output: textminingcount.txt
