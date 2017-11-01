@@ -2,7 +2,7 @@ name: CountWords
 version: 0.2
 url: https://github.com/jakelever/pubrunner/tree/master/examples/CountWords
 resources:
-   main:
+   full:
       - PUBMED
    test:
       - PUBMED_TWOFILES:

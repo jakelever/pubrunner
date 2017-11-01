@@ -5,7 +5,7 @@ resources:
    main:
       - PUBMED
       - AGRICOLA
-   test:
+   full:
       - PUBMED_TWOFILES:
            rename: PUBMED
       - AGRICOLA_TWOFILES:

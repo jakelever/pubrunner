@@ -258,7 +258,7 @@ def generateGetResourceSnakeRule(resources):
 	return ruleTxt
 
 def cleanWorkingDirectory(directory,doTest,execute=False):
-	mode = "test" if doTest else "main"
+	mode = "test" if doTest else "full"
 
 	globalSettings = pubrunner.getGlobalSettings()
 	os.chdir(directory)
@@ -299,7 +299,7 @@ def downloadPMIDSFromPMC(workingDirectory):
 	return pmids
 
 def pubrun(directory,doTest,execute=False):
-	mode = "test" if doTest else "main"
+	mode = "test" if doTest else "full"
 
 	globalSettings = pubrunner.getGlobalSettings()
 

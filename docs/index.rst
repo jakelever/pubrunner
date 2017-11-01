@@ -46,12 +46,12 @@ The `pubrunner.yml <https://github.com/jakelever/pubrunner/blob/master/examples/
    version: 0.1
    url: https://github.com/jakelever/pubrunner/tree/master/examples/TextMiningCounter
 
-Next we need to say which resources to use. The code below would tell PubRunner that the latest version of Pubmed is required. PubRunner will manage the download of PUBMED and symlink it into the working directory. So to access the files, our commands (shown later) will look in the PUBMED directory.
+Next we need to say which resources to use. The code below would tell PubRunner that the latest version of Pubmed is required for the full analysis. The full analysis is the default one that is run. PubRunner will manage the download of PUBMED and symlink it into the working directory. So to access the files, our commands (shown later) will look in the PUBMED directory.
 
 .. code-block:: yaml
 
    resources:
-       main:
+       full:
           - PUBMED
 
 However, the default format of Pubmed is the Pubmed XML format. Our text mining tool just works with plain text files. So we need to specify that using the format parameter for our resource. Note the added colon after PUBMED to show that we're going to add parameters.
@@ -59,7 +59,7 @@ However, the default format of Pubmed is the Pubmed XML format. Our text mining 
 .. code-block:: yaml
 
    resources:
-       main:
+       full:
           - PUBMED:
               format: txt
 
@@ -86,7 +86,7 @@ We can see that the final output of the tool is the textminingcount.txt file. We
 
    output: textminingcount.txt
 
-We now have enough information that we could run the TextMiningCounter project against all of PubMed. If we were in the TextMiningProject directory (and had made the pubrunner.yml file), we could execute it with the following command. The period denotes the current directory, so that's where pubrunner looks for the pubrunner.yml file. PubRunner makes use of a .pubrunner.settings.yml file in your home directory, so if you don't have one, it will prompt you with some settings questions before starting. This can be very useful to control where resources and intermediate files (which can be very large) are stored.
+We now have enough information that we could run the TextMiningCounter project against all of PubMed. If we were in the TextMiningProject directory (and had made the pubrunner.yml file), we could execute the full analysis with the command below. The period denotes the current directory, so that's where pubrunner looks for the pubrunner.yml file. PubRunner makes use of a .pubrunner.settings.yml file in your home directory, so if you don't have one, it will prompt you with some settings questions before starting. This can be very useful to control where resources and intermediate files (which can be very large) are stored and how to manage file uploads.
 
 .. code-block:: bash
 
@@ -103,7 +103,7 @@ For this, we need to replace the PUBMED resource with a mini PUBMED resource for
 .. code-block:: yaml
 
    resources:
-      main:
+      full:
          - PUBMED:
             format: txt
       test:

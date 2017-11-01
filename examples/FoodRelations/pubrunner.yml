@@ -5,7 +5,7 @@ resources:
    all:
       - PUBCHEM
       - FOODON
-   main:
+   full:
 #      - PUBMED:
 #         format: bioc
       - AGRICOLA:
