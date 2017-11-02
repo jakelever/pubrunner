@@ -53,14 +53,6 @@ def getResourceInfo(resource):
 
 	return resourceInfo
 
-#def makeLocation(toolname,name,mode,createDir=False):
-#	globalSettings = pubrunner.getGlobalSettings()
-#	workspaceDir = os.path.expanduser(globalSettings["storage"]["workspace"])
-#	thisDir = os.path.join(workspaceDir,toolname,mode,name)
-#	if createDir and not os.path.isdir(thisDir):
-#		os.makedirs(thisDir)
-#	return thisDir
-
 def processResourceSettings(toolSettings,mode,workingDirectory):
 	toolName = toolSettings['name']
 
@@ -142,121 +134,6 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 
 	toolSettings["conversions"] = conversions
 
-def commandToSnakeMake(toolName,ruleName,command,mode,workingDirectory):
-	variables = extractVariables(command)
-
-	inputs = []
-	outputs = []
-	dirsToTouch = []
-	newCommand = command
-
-	firstInputPattern,firstOutputPattern = None,None
-	hasWildcard = False
-	hasIn = False
-
-	for startPos,endPos,var in variables:
-		#isIn = var.startswith('IN:')
-		#isOut = var.startswith('OUT:')
-		#assert isIn or isOut
-		#split = var.split(':')
-		#asset len(split) == 2
-		#var = split[1]
-
-		#m = re.match("IN:[A-Za-z0-9.]*", var)
-		m = re.match("(?P<vartype>IN|OUT):(?P<varname>[A-Za-z0-9_\.]*)(/(?P<pattern>[A-Za-z0-9_\.\*]*))?", var)
-		if not m:
-			raise RuntimeError("Unable to parse variable: %s" % var)
-		mDict = m.groupdict()
-		vartype = mDict['vartype']
-		varname = mDict['varname']
-		pattern = mDict['pattern'] if 'pattern' in mDict else None
-
-		assert var.count('*') <= 1, "Cannot have more than one wildcard in variable: %s" % var
-
-		loc = os.path.join(workingDirectory,varname)
-		loc = os.path.relpath(loc)
-
-		if pattern:
-			hasWildcard = True
-
-		repname = varname.replace('.','_')
-		if vartype == 'IN' and not pattern:
-			inputs.append((repname,loc))
-			hasIn = True
-		elif vartype == 'OUT' and not pattern:
-			if not firstOutputPattern:
-				firstOutputPattern = loc
-
-			outputs.append((repname,loc))
-			dirsToTouch.append(loc)
-		elif vartype == 'IN' and pattern:
-			if not firstInputPattern:
-				firstInputPattern = loc + '/' + pattern
-
-			snakepattern = loc + '/' + pattern.replace('*','{f}')
-			inputs.append((repname,snakepattern))
-			hasIn = True
-		elif vartype == 'OUT' and pattern:
-			if not firstOutputPattern:
-				firstOutputPattern = loc + '/' + pattern
-
-			# Make sure the directory is created
-			if not os.path.isdir(loc):
-				os.makedirs(loc)
-
-			snakepattern = loc + '/' + pattern.replace('*','{f}')
-			outputs.append((repname,snakepattern))
-			dirsToTouch.append(loc)
-
-		if vartype == 'IN':
-			newCommand = newCommand[:startPos] + '{input.%s}' % repname + newCommand[endPos:]
-		elif vartype == 'OUT':
-			newCommand = newCommand[:startPos] + '{output.%s}' % repname + newCommand[endPos:]
-
-	
-	ruleTxt = ""
-	
-	ruleTxt += "\n"
-	if hasWildcard:
-		ruleTxt += "%s_EXPECTED_FILES = predictOutputFiles('%s','%s')\n" % (ruleName,firstInputPattern,firstOutputPattern)
-	else:
-		ruleTxt += "%s_EXPECTED_FILES = ['%s']\n" % (ruleName,firstOutputPattern)
-	ruleTxt += "rule %s:\n" % ruleName
-
-	if hasIn:
-		ruleTxt += "\tinput: %s_EXPECTED_FILES\n" % ruleName
-
-		ruleTxt += "rule %s_ACTIONS:\n" % ruleName
-		ruleTxt += "\tinput:\n"
-		#ruleTxt += "\t\tINPUTS\n"
-		for i,(name,pattern) in enumerate(inputs):
-			comma = "" if i+1 == len(inputs) else ","
-			ruleTxt += "\t\t%s='%s'%s\n" % (name,pattern,comma)
-		ruleTxt += "\toutput:\n"
-		#ruleTxt += "\t\tOUTPUTS\n"
-		for i,(name,pattern) in enumerate(outputs):
-			comma = "" if i+1 == len(outputs) else ","
-			ruleTxt += "\t\t%s='%s'%s\n" % (name,pattern,comma)
-
-	ruleTxt += "\tshell:\n"
-	ruleTxt += '\t\t"""\n'
-	ruleTxt += "\t\t%s\n" % newCommand
-	for dirToTouch in dirsToTouch:
-		ruleTxt += "\t\ttouch %s\n" % dirToTouch
-	ruleTxt += '\t\t"""\n'
-
-
-	return ruleTxt
-
-def generateGetResourceSnakeRule(resources):
-	ruleTxt = 'rule getResources:\n'
-	ruleTxt += '\tshell:\n'
-	ruleTxt += '\t\t"""\n'
-	for resource in resources:
-		ruleTxt += '\t\t pubrunner --getResource %s\n' % resource 
-	ruleTxt += '\t\t"""\n\n'
-	return ruleTxt
-
 def cleanWorkingDirectory(directory,doTest,execute=False):
 	mode = "test" if doTest else "full"
 
@@ -328,40 +205,7 @@ def pubrun(directory,doTest,execute=False):
 
 	processResourceSettings(toolSettings,mode,workingDirectory)
 
-	#with open(os.path.join(os.path.dirname(__file__),'Snakefile.header')) as f:
-	#	snakefileHeader = f.read()
-
-	#ruleDir = '.pubrunner'
-	#if os.path.isdir(ruleDir):
-	#	shutil.rmtree(ruleDir)
-	#os.makedirs(ruleDir)
-
-	#print("Building Snakefiles")
-
-	#with open(os.path.join(ruleDir,'Snakefile.resources'),'w') as f:
-	#	resourcesSnakeRule = generateGetResourceSnakeRule(toolSettings["resources"])
-	#	f.write(resourcesSnakeRule)
-
-
-	#commandExecutionList = []
-	#for commandGroup in ["build","run"]:
-	#	for i,command in enumerate(toolSettings[commandGroup]):
-	#		snakeFilePath = os.path.join(ruleDir,'Snakefile.%s_%d' % (commandGroup,i+1))
-	#		commandExecutionList.append((commandGroup=="run",snakeFilePath,command))
-	#		with open(snakeFilePath,'w') as f:
-	#			ruleName = "RULE_%d" % (i+1)
-	#			snakecode = commandToSnakeMake(toolName, ruleName, command, mode, workingDirectory)
-	#			f.write(snakefileHeader)
-	#			f.write(snakecode + "\n")
-	#print("Completed Snakefiles")
-
 	if execute:
-		#snakeFilePath = os.path.join(ruleDir,'Snakefile.resources')
-		#print("\nRunning command to fetch resourcess")
-		#makecommand = "snakemake -s %s" % (snakeFilePath)
-		#retval = subprocess.call(shlex.split(makecommand))
-		#if retval != 0:
-		#	raise RuntimeError("Snake make call FAILED for get resources")
 
 		print("\nFetching resources")
 		for res in toolSettings["resources"]:
