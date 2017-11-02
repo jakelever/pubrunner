@@ -181,6 +181,9 @@ def pubrun(directory,doTest,execute=False):
 	globalSettings = pubrunner.getGlobalSettings()
 
 	os.chdir(directory)
+	
+	if os.path.isdir('.snakemake'):
+		raise RuntimeError("A .snakemake directory exists in this project directory. These are created by PubRunner/SnakeMake during an incomplete run. Are you sure another instance of PubRunner or snakemake is not currently running? If you're sure, you will need to delete this directory before continuing. The directory is: %s" % os.path.join(directory,'.snakemake'))
 
 	toolYamlFile = 'pubrunner.yml'
 	if not os.path.isfile(toolYamlFile):
