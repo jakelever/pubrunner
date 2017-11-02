@@ -61,7 +61,8 @@ def main():
 
 	if args.ignorecluster:
 		globalSettings = pubrunner.getGlobalSettings()
-		del globalSettings["cluster"]
+		if "cluster" in globalSettings:
+			del globalSettings["cluster"]
 
 	print("------------")
 	print(" PubRunner ")
