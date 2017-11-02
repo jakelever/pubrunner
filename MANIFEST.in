@@ -2,3 +2,4 @@ include README.rst
 include requirements.txt
 include pubrunner/resources/*.yml
 include pubrunner/Snakefiles/*.py
+include pubrunner/pubrunner.settings.default.yml

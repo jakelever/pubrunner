@@ -38,8 +38,13 @@ def promptuser(prompt='> ', accepted=None):
 		 	print("Input not allowed. Must be one of %s" % str(accepted))
 	return userinput
 
-def setupDefaultGlobalSettingsFile(globalSettingsPath):
+def getDefaultGlobalSettingsPath():
 	defaultPath = os.path.join(pubrunner.__path__[0],'pubrunner.settings.default.yml')
+	assert os.path.isfile(defaultPath), "Unable to find default settings file"
+	return defaultPath
+
+def setupDefaultGlobalSettingsFile(globalSettingsPath):
+	defaultPath = getDefaultGlobalSettingsPath()
 	with codecs.open(defaultPath,'r','utf-8') as f:
 		defaultSettings = f.read()
 
@@ -48,7 +53,7 @@ def setupDefaultGlobalSettingsFile(globalSettingsPath):
 
 	userinput = promptuser(prompt='(Y/N): ',accepted=['Y','N','y','n'])
 	if userinput.lower() == 'y':
-		assert os.path.isfile(defaultPath), "Unable to find default settings file"
+
 		shutil.copy(defaultPath,globalSettingsPath)
 
 		print("Default settings installed. Do you want to continue with this run?")
@@ -57,20 +62,20 @@ def setupDefaultGlobalSettingsFile(globalSettingsPath):
 			print("Exiting...")
 			sys.exit(0)
 		
-def findGlobalSettingsFile():
-	homeDirectory = os.path.expanduser("~")
-	globalSettingsPath = os.path.join(homeDirectory,'.pubrunner.settings.yml')
-	if not os.path.isfile(globalSettingsPath):
-		setupDefaultGlobalSettingsFile(globalSettingsPath)
-	assert os.path.isfile(globalSettingsPath), "Unable to find ~/.pubrunner.settings.yml file."
-	return globalSettingsPath
-
 globalSettings = None
-def getGlobalSettings():
+def getGlobalSettings(useDefault=False):
 	global globalSettings
 	if globalSettings is None:
-		settingsYamlFile = findGlobalSettingsFile()
-		globalSettings = loadYAML(settingsYamlFile)
+		if useDefault:
+			globalSettingsPath = getDefaultGlobalSettingsPath()
+		else:
+			homeDirectory = os.path.expanduser("~")
+			globalSettingsPath = os.path.join(homeDirectory,'.pubrunner.settings.yml')
+			if not os.path.isfile(globalSettingsPath):
+				setupDefaultGlobalSettingsFile(globalSettingsPath)
+			assert os.path.isfile(globalSettingsPath), "Unable to find ~/.pubrunner.settings.yml file."
+
+		globalSettings = loadYAML(globalSettingsPath)
 
 	return globalSettings
 
@@ -92,7 +97,7 @@ def launchSnakemake(snakeFilePath,useCluster=True,parameters={}):
 		else:
 			raise RuntimeError("Cluster must either have drmaa = true or provide options (e.g. using qsub)")
 
-	makecommand = "snakemake %s -s %s" % (clusterFlags,snakeFilePath)
+	makecommand = "snakemake %s --nolock -s %s" % (clusterFlags,snakeFilePath)
 
 	env = os.environ.copy()
 	env.update(parameters)
@@ -100,3 +105,4 @@ def launchSnakemake(snakeFilePath,useCluster=True,parameters={}):
 	retval = subprocess.call(shlex.split(makecommand),env=env)
 	if retval != 0:
 		raise RuntimeError("Snake make call FAILED (file:%s)" % snakeFilePath)
+
