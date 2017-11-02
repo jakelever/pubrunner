@@ -2,26 +2,10 @@ import pubrunner
 import sys
 import argparse
 import os
-import git
 import tempfile
 import shutil
 import logging
 import traceback
-import yaml
-import json
-import subprocess
-import shlex
-import wget
-import gzip
-import hashlib
-import six
-import six.moves.urllib as urllib
-import time
-from six.moves import reload_module
-import ftplib
-import ftputil
-from collections import OrderedDict
-import re
 import pyfiglet
 
 def cloneGithubRepoToTempDir(githubRepo):

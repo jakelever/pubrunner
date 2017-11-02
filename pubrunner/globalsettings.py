@@ -3,6 +3,8 @@ import pubrunner
 import yaml
 import os
 import sys
+import codecs
+import shutil
 
 def loadYAML(yamlFilename):
 	yamlData = None

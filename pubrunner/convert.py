@@ -1,14 +1,8 @@
-import sys
-import pickle
 import argparse
 import xml.etree.cElementTree as etree
-import os
-from os import listdir
-from os.path import isfile, join
 import codecs
 from six.moves.html_parser import HTMLParser
 import re
-from collections import defaultdict
 import tempfile
 import bioc
 import pymarc
@@ -51,8 +45,6 @@ ignoreList = ['table', 'table-wrap', 'xref', 'disp-formula', 'inline-formula', '
 # XML elements to separate text between
 separationList = ['title', 'p', 'sec', 'break', 'def-item', 'list-item', 'caption']
 def extractTextFromElem(elem):
-	textList = []
-	
 	# Extract any raw text directly in XML element or just after
 	head = ""
 	if elem.text:

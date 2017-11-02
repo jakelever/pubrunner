@@ -45,7 +45,6 @@ def predictOutputFiles(inputVariables,outputVariables):
 		for potentialInputFile in glob.glob(inPattern.replace('{wildcard}','*')):
 			wildcardValue = re.match(inPattern.replace('{wildcard}','(.*)'), potentialInputFile).groups()[0]
 			wildcardValues.add(wildcardValue)
-		print(wildcardValues)
 		if i == 0:
 		 	allWildcardValues = wildcardValues
 		else:
@@ -72,14 +71,10 @@ def predictOutputFiles(inputVariables,outputVariables):
 def processCommand(dataDir,command):
 	assert isinstance(command,six.string_types)
 	regex = re.compile("\{(?P<type>(IN|OUT)):(?P<value>\S*)\}")
-	#regex = re.compile("\{(IN|OUT):(\S*)\}")
 	variablesWithLocations = []
 	for m in regex.finditer(command):
-		#var = ( m.start(), m.end(), m.group()[1:-1] )
-		#print(m.groupdict())
 		variableWithLocation = (m.start(), m.end(), m.groupdict()['type'], m.groupdict()['value'])
 		variablesWithLocations.append(variableWithLocation)
-		#variables.append(var)
 	variablesWithLocations = sorted(variablesWithLocations,reverse=True)
 
 	inputVariables,outputVariables = {},{}
@@ -104,10 +99,6 @@ def addTouchToCommands(command,outputVariables):
 	for varName,outputPath in outputVariables.items():
 		command += '; touch {output.%s}' % varName
 	return command
-
-#unprocessedCommand = 'python Count.py --inFile {IN:PUBMED/%} --outFile {OUT:counts/%.txt}'
-#dataDir = 'data/test'
-#dataDir = '../../workspace/TextMiningCounter/test'
 
 snakemakeExec = shutil.which('snakemake')
 
