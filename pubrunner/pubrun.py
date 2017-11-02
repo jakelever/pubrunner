@@ -260,7 +260,7 @@ def pubrun(directory,doTest):
 	runSnakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Run.py')
 	for commandGroup in ["build","run"]:
 		for i,command in enumerate(toolSettings[commandGroup]):
-			print("\nRunning %s command %d: %s" % (commandGroup,i+1,command))
+			print("\nStarting '%s' command #%d: %s" % (commandGroup,i+1,command))
 			useClusterIfPossible = True
 			parameters = {'COMMAND':command,'DATADIR':workingDirectory}
 			pubrunner.launchSnakemake(runSnakeFile,useCluster=useClusterIfPossible,parameters=parameters)
