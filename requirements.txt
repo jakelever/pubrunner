@@ -9,3 +9,4 @@ future
 pymarc
 snakemake
 drmaa
+pyfiglet

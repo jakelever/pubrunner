@@ -6,6 +6,7 @@ from pubrunner.pubrun import pubrun,cleanWorkingDirectory
 from pubrunner.convert import *
 from pubrunner.pubmed_hash import pubmed_hash
 from pubrunner.gather_pmids import gatherPMIDs
+from pubrunner.wizard import wizard
 
 def calcSHA256(filename):
 	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
@@ -27,19 +28,18 @@ def loadYAML(yamlFilename):
 			raise
 	return yamlData
 
-def findSettingsFile():
-	possibilities = [ os.getcwd(), os.path.expanduser("~") ]
-	for directory in possibilities:
-		settingsPath = os.path.join(directory,'.pubrunner.settings.yml')
-		if os.path.isfile(settingsPath):
-			return settingsPath
-	raise RuntimeError("Unable to find .pubrunner.settings.yml file. Tried current directory first, then home directory")
+def findGlobalSettingsFile():
+	homeDirectory = os.path.expanduser("~")
+	globalSettingsPath = os.path.join(homeDirectory,'.pubrunner.settings.yml')
+	if os.path.isfile(globalSettingsPath):
+		return globalSettingsPath
+	raise RuntimeError("Unable to find ~/.pubrunner.settings.yml file.")
 
 globalSettings = None
 def getGlobalSettings():
 	global globalSettings
 	if globalSettings is None:
-		settingsYamlFile = findSettingsFile()
+		settingsYamlFile = findGlobalSettingsFile()
 		globalSettings = loadYAML(settingsYamlFile)
 
 	return globalSettings
