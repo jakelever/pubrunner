@@ -328,32 +328,32 @@ def pubrun(directory,doTest,execute=False):
 
 	processResourceSettings(toolSettings,mode,workingDirectory)
 
-	with open(os.path.join(os.path.dirname(__file__),'Snakefile.header')) as f:
-		snakefileHeader = f.read()
+	#with open(os.path.join(os.path.dirname(__file__),'Snakefile.header')) as f:
+	#	snakefileHeader = f.read()
 
-	ruleDir = '.pubrunner'
-	if os.path.isdir(ruleDir):
-		shutil.rmtree(ruleDir)
-	os.makedirs(ruleDir)
+	#ruleDir = '.pubrunner'
+	#if os.path.isdir(ruleDir):
+	#	shutil.rmtree(ruleDir)
+	#os.makedirs(ruleDir)
 
-	print("Building Snakefiles")
+	#print("Building Snakefiles")
 
 	#with open(os.path.join(ruleDir,'Snakefile.resources'),'w') as f:
 	#	resourcesSnakeRule = generateGetResourceSnakeRule(toolSettings["resources"])
 	#	f.write(resourcesSnakeRule)
 
 
-	commandExecutionList = []
-	for commandGroup in ["build","run"]:
-		for i,command in enumerate(toolSettings[commandGroup]):
-			snakeFilePath = os.path.join(ruleDir,'Snakefile.%s_%d' % (commandGroup,i+1))
-			commandExecutionList.append((commandGroup=="run",snakeFilePath,command))
-			with open(snakeFilePath,'w') as f:
-				ruleName = "RULE_%d" % (i+1)
-				snakecode = commandToSnakeMake(toolName, ruleName, command, mode, workingDirectory)
-				f.write(snakefileHeader)
-				f.write(snakecode + "\n")
-	print("Completed Snakefiles")
+	#commandExecutionList = []
+	#for commandGroup in ["build","run"]:
+	#	for i,command in enumerate(toolSettings[commandGroup]):
+	#		snakeFilePath = os.path.join(ruleDir,'Snakefile.%s_%d' % (commandGroup,i+1))
+	#		commandExecutionList.append((commandGroup=="run",snakeFilePath,command))
+	#		with open(snakeFilePath,'w') as f:
+	#			ruleName = "RULE_%d" % (i+1)
+	#			snakecode = commandToSnakeMake(toolName, ruleName, command, mode, workingDirectory)
+	#			f.write(snakefileHeader)
+	#			f.write(snakecode + "\n")
+	#print("Completed Snakefiles")
 
 	if execute:
 		#snakeFilePath = os.path.join(ruleDir,'Snakefile.resources')
@@ -387,7 +387,6 @@ def pubrun(directory,doTest,execute=False):
 				else:
 					pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
 
-
 		print("\nRunning conversions")
 		for conversionInfo in toolSettings["conversions"]:
 			inDir,inFormat = conversionInfo['inDir'],conversionInfo['inFormat']
@@ -400,14 +399,18 @@ def pubrun(directory,doTest,execute=False):
 				assert os.path.isdir(pmidDirectory), "Cannot find PMIDs directory for resource. Tried: %s" % pmidDirectory
 				parameters['PMIDDIR'] = pmidDirectory
 
-			snakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
-			pubrunner.launchSnakemake(snakeFile,parameters=parameters)
+			convertSnakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
+			pubrunner.launchSnakemake(convertSnakeFile,parameters=parameters)
 
 
-		for i,(isRunCommand,snakeFilePath,command) in enumerate(commandExecutionList):
-			print("\nRunning command %d: %s" % (i+1,command))
-			pubrunner.launchSnakemake(snakeFilePath,useCluster=isRunCommand)
-		print("")
+		runSnakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Run.py')
+		for commandGroup in ["build","run"]:
+			for i,command in enumerate(toolSettings[commandGroup]):
+				print("\nRunning %s command %d: %s" % (commandGroup,i+1,command))
+				useClusterIfPossible = True
+				parameters = {'COMMAND':command,'DATADIR':workingDirectory}
+				pubrunner.launchSnakemake(runSnakeFile,useCluster=useClusterIfPossible,parameters=parameters)
+				print("")
 
 		if "output" in toolSettings and mode != 'test':
 			outputList = toolSettings["output"]
