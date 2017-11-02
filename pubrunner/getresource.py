@@ -26,6 +26,9 @@ import re
 import math
 import tarfile
 
+def calcSHA256(filename):
+	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
+
 def checkFileSuffixFilter(filename,fileSuffixFilter):
 	if fileSuffixFilter is None:
 		return True
