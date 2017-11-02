@@ -33,7 +33,6 @@ def main():
 	parser.add_argument('codebase',nargs='?',type=str,help='Code base containing the text mining tool to execute. Code base should contain a pubrunner.yml file. The code base can be a directory, Github repo or archive')
 	parser.add_argument('--ignorecluster',action='store_true',help='Ignore any cluster settings and run everything locally')
 	parser.add_argument('--cleanonly',action='store_true',help='Remove the existing working directory')
-	parser.add_argument('--snakefileonly',action='store_true',help='Create the Snakefile, do not execute each step')
 	parser.add_argument('--test',action='store_true',help='Run the test functionality instead of the full run')
 	parser.add_argument('--getResource',required=False,type=str,help='Fetch a specific resource (instead of doing a normal PubRunner run). This is really only needed for debugging and understanding resources.')
 
@@ -52,8 +51,6 @@ def main():
 		parser.print_help()
 		sys.exit(1)
 
-	execute = not args.snakefileonly
-
 	if args.ignorecluster:
 		globalSettings = pubrunner.getGlobalSettings()
 		if "cluster" in globalSettings:
@@ -66,17 +63,17 @@ def main():
 
 	if os.path.isdir(args.codebase):
 		if args.cleanonly:
-			pubrunner.cleanWorkingDirectory(args.codebase,args.test,execute)
+			pubrunner.cleanWorkingDirectory(args.codebase,args.test)
 		else:
-			pubrunner.pubrun(args.codebase,args.test,execute)
+			pubrunner.pubrun(args.codebase,args.test)
 	elif args.codebase.startswith('https://github.com/'):
 		tempDir = ''
 		try:
 			tempDir = cloneGithubRepoToTempDir(args.codebase)
 			if args.cleanonly:
-				pubrunner.cleanWorkingDirectory(tempDir,args.test,execute)
+				pubrunner.cleanWorkingDirectory(tempDir,args.test)
 			else:
-				pubrunner.pubrun(tempDir,args.test,execute)
+				pubrunner.pubrun(tempDir,args.test)
 			shutil.rmtree(tempDir)
 		except:
 			if os.path.isdir(tempDir):

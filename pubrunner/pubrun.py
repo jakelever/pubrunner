@@ -175,7 +175,7 @@ def downloadPMIDSFromPMC(workingDirectory):
 
 	return pmids
 
-def pubrun(directory,doTest,execute=False):
+def pubrun(directory,doTest):
 	mode = "test" if doTest else "full"
 
 	globalSettings = pubrunner.getGlobalSettings()
@@ -208,97 +208,95 @@ def pubrun(directory,doTest,execute=False):
 
 	processResourceSettings(toolSettings,mode,workingDirectory)
 
-	if execute:
+	print("\nFetching resources")
+	for res in toolSettings["resources"]:
+		pubrunner.getResource(res)
 
-		print("\nFetching resources")
-		for res in toolSettings["resources"]:
-			pubrunner.getResource(res)
+	pmidsFromPMCFile = None
+	needPMIDsFromPMC = any( hashesInfo['removePMCOADuplicates'] for hashesInfo in toolSettings["pubmed_hashes"] )
+	if needPMIDsFromPMC:
+		print("\nGetting list of PMIDs in Pubmed Central")
+		pmidsFromPMCFile = downloadPMIDSFromPMC(workingDirectory)
 
-		pmidsFromPMCFile = None
-		needPMIDsFromPMC = any( hashesInfo['removePMCOADuplicates'] for hashesInfo in toolSettings["pubmed_hashes"] )
-		if needPMIDsFromPMC:
-			print("\nGetting list of PMIDs in Pubmed Central")
-			pmidsFromPMCFile = downloadPMIDSFromPMC(workingDirectory)
+	if toolSettings["pubmed_hashes"] != []:
+		print("\nUsing Pubmed Hashes to identify updates")
+		for hashesInfo in toolSettings["pubmed_hashes"]:
+			hashDirectory = hashesInfo['hashDir']
+			removePMCOADuplicates = hashesInfo['removePMCOADuplicates']
 
-		if toolSettings["pubmed_hashes"] != []:
-			print("\nUsing Pubmed Hashes to identify updates")
-			for hashesInfo in toolSettings["pubmed_hashes"]:
-				hashDirectory = hashesInfo['hashDir']
-				removePMCOADuplicates = hashesInfo['removePMCOADuplicates']
+			pmidDirectory = hashesInfo["resourceDir"].rstrip('/') + '.pmids'
+			print("Using hashes in %s to identify PMID updates" % hashDirectory)
+			if removePMCOADuplicates:
+				assert not pmidsFromPMCFile is None
+				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory,pmidExclusions=pmidsFromPMCFile)
+			else:
+				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
 
-				pmidDirectory = hashesInfo["resourceDir"].rstrip('/') + '.pmids'
-				print("Using hashes in %s to identify PMID updates" % hashDirectory)
-				if removePMCOADuplicates:
-					assert not pmidsFromPMCFile is None
-					pubrunner.gatherPMIDs(hashDirectory,pmidDirectory,pmidExclusions=pmidsFromPMCFile)
-				else:
-					pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
+	print("\nRunning conversions")
+	for conversionInfo in toolSettings["conversions"]:
+		inDir,inFormat = conversionInfo['inDir'],conversionInfo['inFormat']
+		outDir,outFormat = conversionInfo['outDir'],conversionInfo['outFormat']
+		chunkSize = conversionInfo['chunkSize']
+		parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
 
-		print("\nRunning conversions")
-		for conversionInfo in toolSettings["conversions"]:
-			inDir,inFormat = conversionInfo['inDir'],conversionInfo['inFormat']
-			outDir,outFormat = conversionInfo['outDir'],conversionInfo['outFormat']
-			chunkSize = conversionInfo['chunkSize']
-			parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
+		if inDir in toolSettings["pubmed_hashes"]:
+			pmidDirectory = inDir.rstrip('/') + '.pmids'
+			assert os.path.isdir(pmidDirectory), "Cannot find PMIDs directory for resource. Tried: %s" % pmidDirectory
+			parameters['PMIDDIR'] = pmidDirectory
 
-			if inDir in toolSettings["pubmed_hashes"]:
-				pmidDirectory = inDir.rstrip('/') + '.pmids'
-				assert os.path.isdir(pmidDirectory), "Cannot find PMIDs directory for resource. Tried: %s" % pmidDirectory
-				parameters['PMIDDIR'] = pmidDirectory
-
-			convertSnakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
-			pubrunner.launchSnakemake(convertSnakeFile,parameters=parameters)
+		convertSnakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
+		pubrunner.launchSnakemake(convertSnakeFile,parameters=parameters)
 
 
-		runSnakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Run.py')
-		for commandGroup in ["build","run"]:
-			for i,command in enumerate(toolSettings[commandGroup]):
-				print("\nRunning %s command %d: %s" % (commandGroup,i+1,command))
-				useClusterIfPossible = True
-				parameters = {'COMMAND':command,'DATADIR':workingDirectory}
-				pubrunner.launchSnakemake(runSnakeFile,useCluster=useClusterIfPossible,parameters=parameters)
-				print("")
+	runSnakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Run.py')
+	for commandGroup in ["build","run"]:
+		for i,command in enumerate(toolSettings[commandGroup]):
+			print("\nRunning %s command %d: %s" % (commandGroup,i+1,command))
+			useClusterIfPossible = True
+			parameters = {'COMMAND':command,'DATADIR':workingDirectory}
+			pubrunner.launchSnakemake(runSnakeFile,useCluster=useClusterIfPossible,parameters=parameters)
+			print("")
 
-		if "output" in toolSettings:
-			outputList = toolSettings["output"]
-			if not isinstance(outputList,list):
-				outputList = [outputList]
+	if "output" in toolSettings:
+		outputList = toolSettings["output"]
+		if not isinstance(outputList,list):
+			outputList = [outputList]
 
-			outputLocList = [ os.path.join(workingDirectory,o) for o in outputList ]
+		outputLocList = [ os.path.join(workingDirectory,o) for o in outputList ]
 
-			print("\nExecution of tool is complete. Full paths of output files are below:")
-			for f in outputLocList:
-				print('  %s' % f)
-			print()
+		print("\nExecution of tool is complete. Full paths of output files are below:")
+		for f in outputLocList:
+			print('  %s' % f)
+		print()
 
-			if mode != 'test':
+		if mode != 'test':
 
-				dataurl = None
-				if "upload" in globalSettings:
-					if "ftp" in globalSettings["upload"]:
-						print("Uploading results to FTP")
-						pubrunner.pushToFTP(outputLocList,toolSettings,globalSettings)
-					if "local-directory" in globalSettings["upload"]:
-						print("Uploading results to local directory")
-						pubrunner.pushToLocalDirectory(outputLocList,toolSettings,globalSettings)
-					if "zenodo" in globalSettings["upload"]:
-						print("Uploading results to Zenodo")
-						dataurl = pubrunner.pushToZenodo(outputLocList,toolSettings,globalSettings)
+			dataurl = None
+			if "upload" in globalSettings:
+				if "ftp" in globalSettings["upload"]:
+					print("Uploading results to FTP")
+					pubrunner.pushToFTP(outputLocList,toolSettings,globalSettings)
+				if "local-directory" in globalSettings["upload"]:
+					print("Uploading results to local directory")
+					pubrunner.pushToLocalDirectory(outputLocList,toolSettings,globalSettings)
+				if "zenodo" in globalSettings["upload"]:
+					print("Uploading results to Zenodo")
+					dataurl = pubrunner.pushToZenodo(outputLocList,toolSettings,globalSettings)
 
-				if "website-update" in globalSettings and toolName in globalSettings["website-update"]:
-					assert not dataurl is None, "Don't have URL to update website with"
-					websiteToken = globalSettings["website-update"][toolName]
-					print("Sending update to website")
-					
-					headers = {'User-Agent': 'Pubrunner Agent', 'From': 'no-reply@pubrunner.org'  }
-					today = datetime.datetime.now().strftime("%m-%d-%Y")	
-					updateData = [{'authentication':websiteToken,'success':True,'lastRun':today,'codeurl':toolSettings['url'],'dataurl':dataurl}]
-					
-					jsonData = json.dumps(updateData)
-					r = requests.post('http://www.pubrunner.org/update.php',headers=headers,files={'jsonFile': jsonData})
-					assert r.status_code == 200, "Error updating website with job status"
-				else:
-					print("Could not update website. Did not find %s under website-update in .pubrunner.settings.yml file" % toolName)
+			if "website-update" in globalSettings and toolName in globalSettings["website-update"]:
+				assert not dataurl is None, "Don't have URL to update website with"
+				websiteToken = globalSettings["website-update"][toolName]
+				print("Sending update to website")
+				
+				headers = {'User-Agent': 'Pubrunner Agent', 'From': 'no-reply@pubrunner.org'  }
+				today = datetime.datetime.now().strftime("%m-%d-%Y")	
+				updateData = [{'authentication':websiteToken,'success':True,'lastRun':today,'codeurl':toolSettings['url'],'dataurl':dataurl}]
+				
+				jsonData = json.dumps(updateData)
+				r = requests.post('http://www.pubrunner.org/update.php',headers=headers,files={'jsonFile': jsonData})
+				assert r.status_code == 200, "Error updating website with job status"
+			else:
+				print("Could not update website. Did not find %s under website-update in .pubrunner.settings.yml file" % toolName)
 
 
 
