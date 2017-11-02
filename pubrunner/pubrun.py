@@ -256,39 +256,46 @@ def pubrun(directory,doTest,execute=False):
 				pubrunner.launchSnakemake(runSnakeFile,useCluster=useClusterIfPossible,parameters=parameters)
 				print("")
 
-		if "output" in toolSettings and mode != 'test':
+		if "output" in toolSettings:
 			outputList = toolSettings["output"]
 			if not isinstance(outputList,list):
 				outputList = [outputList]
 
 			outputLocList = [ os.path.join(workingDirectory,o) for o in outputList ]
 
-			dataurl = None
-			if "upload" in globalSettings:
-				if "ftp" in globalSettings["upload"]:
-					print("Uploading results to FTP")
-					pubrunner.pushToFTP(outputLocList,toolSettings,globalSettings)
-				if "local-directory" in globalSettings["upload"]:
-					print("Uploading results to local directory")
-					pubrunner.pushToLocalDirectory(outputLocList,toolSettings,globalSettings)
-				if "zenodo" in globalSettings["upload"]:
-					print("Uploading results to Zenodo")
-					dataurl = pubrunner.pushToZenodo(outputLocList,toolSettings,globalSettings)
+			print("\nExecution of tool is complete. Full paths of output files are below:")
+			for f in outputLocList:
+				print('  %s' % f)
+			print()
 
-			if "website-update" in globalSettings and toolName in globalSettings["website-update"]:
-				assert not dataurl is None, "Don't have URL to update website with"
-				websiteToken = globalSettings["website-update"][toolName]
-				print("Sending update to website")
-				
-				headers = {'User-Agent': 'Pubrunner Agent', 'From': 'no-reply@pubrunner.org'  }
-				today = datetime.datetime.now().strftime("%m-%d-%Y")	
-				updateData = [{'authentication':websiteToken,'success':True,'lastRun':today,'codeurl':toolSettings['url'],'dataurl':dataurl}]
-				
-				jsonData = json.dumps(updateData)
-				r = requests.post('http://www.pubrunner.org/update.php',headers=headers,files={'jsonFile': jsonData})
-				assert r.status_code == 200, "Error updating website with job status"
-			else:
-				print("Could not update website. Did not find %s under website-update in .pubrunner.settings.yml file" % toolName)
+			if mode != 'test':
+
+				dataurl = None
+				if "upload" in globalSettings:
+					if "ftp" in globalSettings["upload"]:
+						print("Uploading results to FTP")
+						pubrunner.pushToFTP(outputLocList,toolSettings,globalSettings)
+					if "local-directory" in globalSettings["upload"]:
+						print("Uploading results to local directory")
+						pubrunner.pushToLocalDirectory(outputLocList,toolSettings,globalSettings)
+					if "zenodo" in globalSettings["upload"]:
+						print("Uploading results to Zenodo")
+						dataurl = pubrunner.pushToZenodo(outputLocList,toolSettings,globalSettings)
+
+				if "website-update" in globalSettings and toolName in globalSettings["website-update"]:
+					assert not dataurl is None, "Don't have URL to update website with"
+					websiteToken = globalSettings["website-update"][toolName]
+					print("Sending update to website")
+					
+					headers = {'User-Agent': 'Pubrunner Agent', 'From': 'no-reply@pubrunner.org'  }
+					today = datetime.datetime.now().strftime("%m-%d-%Y")	
+					updateData = [{'authentication':websiteToken,'success':True,'lastRun':today,'codeurl':toolSettings['url'],'dataurl':dataurl}]
+					
+					jsonData = json.dumps(updateData)
+					r = requests.post('http://www.pubrunner.org/update.php',headers=headers,files={'jsonFile': jsonData})
+					assert r.status_code == 200, "Error updating website with job status"
+				else:
+					print("Could not update website. Did not find %s under website-update in .pubrunner.settings.yml file" % toolName)
 
 
 
