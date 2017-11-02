@@ -26,6 +26,7 @@ import glob
 import requests
 import datetime
 import csv
+import atexit
 
 def extractVariables(command):
 	assert isinstance(command,six.string_types)
@@ -175,6 +176,11 @@ def downloadPMIDSFromPMC(workingDirectory):
 
 	return pmids
 
+def cleanup():
+	os.rmdir('.pubrunner_lock')
+	if os.path.isdir('.snakemake'):
+		shutil.rmtree('.snakemake')
+
 def pubrun(directory,doTest):
 	mode = "test" if doTest else "full"
 
@@ -182,8 +188,11 @@ def pubrun(directory,doTest):
 
 	os.chdir(directory)
 	
-	if os.path.isdir('.snakemake'):
-		raise RuntimeError("A .snakemake directory exists in this project directory. These are created by PubRunner/SnakeMake during an incomplete run. Are you sure another instance of PubRunner or snakemake is not currently running? If you're sure, you will need to delete this directory before continuing. The directory is: %s" % os.path.join(directory,'.snakemake'))
+	if os.path.isdir('.pubrunner_lock'):
+		raise RuntimeError("A .pubrunner_lock directory exists in this project directory. These are created by PubRunner during an incomplete run. Are you sure another instance of PubRunner is not currently running? If you're sure, you will need to delete this directory before continuing. The directory is: %s" % os.path.join(directory,'.pubrunner_lock'))
+
+	os.mkdir('.pubrunner_lock')
+	atexit.register(cleanup)
 
 	toolYamlFile = 'pubrunner.yml'
 	if not os.path.isfile(toolYamlFile):
