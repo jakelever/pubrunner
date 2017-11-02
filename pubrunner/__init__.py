@@ -6,7 +6,6 @@ from pubrunner.pubrun import pubrun,cleanWorkingDirectory
 from pubrunner.convert import *
 from pubrunner.pubmed_hash import pubmed_hash
 from pubrunner.gather_pmids import gatherPMIDs
-from pubrunner.wizard import wizard
 
 def calcSHA256(filename):
 	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()

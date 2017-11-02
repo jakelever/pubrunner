@@ -31,7 +31,6 @@ def cloneGithubRepoToTempDir(githubRepo):
 def main():
 	parser = argparse.ArgumentParser(description='PubRunner will manage the download of needed resources for a text mining tool, build and execute it and then share the results publicly')
 	parser.add_argument('codebase',nargs='?',type=str,help='Code base containing the text mining tool to execute. Code base should contain a pubrunner.yml file. The code base can be a directory, Github repo or archive')
-	parser.add_argument('--wizard',action='store_true',help='Run the Wizard for editing the global settings for PubRunner')
 	parser.add_argument('--ignorecluster',action='store_true',help='Ignore any cluster settings and run everything locally')
 	parser.add_argument('--cleanonly',action='store_true',help='Remove the existing working directory')
 	parser.add_argument('--snakefileonly',action='store_true',help='Create the Snakefile, do not execute each step')
@@ -46,10 +45,6 @@ def main():
 		print(location)
 		print("")
 		print("Exiting without doing PubRun")
-		sys.exit(0)
-
-	if args.wizard:
-		pubrunner.wizard()
 		sys.exit(0)
 	
 	if not args.codebase:
