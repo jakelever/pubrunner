@@ -22,6 +22,7 @@ import ftplib
 import ftputil
 from collections import OrderedDict
 import re
+import pyfiglet
 
 def cloneGithubRepoToTempDir(githubRepo):
 	tempDir = tempfile.mkdtemp()
@@ -38,6 +39,9 @@ def main():
 
 	args = parser.parse_args()
 
+	print(pyfiglet.figlet_format('PubRunner', font='cyberlarge', justify='center'))
+	print()
+
 	if args.getResource:
 		location = pubrunner.getResource(args.getResource)
 		print("Downloaded latest version of resource '%s' to location:" % args.getResource)
@@ -47,7 +51,8 @@ def main():
 		sys.exit(0)
 	
 	if not args.codebase:
-		print("codebase must be provided (if not downloading individual resources)")
+		print("ERROR: codebase must be provided (if not downloading individual resources)")
+		print()
 		parser.print_help()
 		sys.exit(1)
 
@@ -55,11 +60,6 @@ def main():
 		globalSettings = pubrunner.getGlobalSettings()
 		if "cluster" in globalSettings:
 			del globalSettings["cluster"]
-
-	print("------------")
-	print(" PubRunner ")
-	print("------------")
-	print("")
 
 	if os.path.isdir(args.codebase):
 		if args.cleanonly:
