@@ -7,10 +7,11 @@ import shutil
 import logging
 import traceback
 import pyfiglet
+import git
 
 def cloneGithubRepoToTempDir(githubRepo):
 	tempDir = tempfile.mkdtemp()
-	Repo.clone_from(githubRepo, tempDir)
+	git.Repo.clone_from(githubRepo, tempDir)
 	return tempDir
 
 def main():
@@ -57,6 +58,7 @@ def main():
 	elif args.codebase.startswith('https://github.com/'):
 		tempDir = ''
 		try:
+			print("Cloning Github repo")
 			tempDir = cloneGithubRepoToTempDir(args.codebase)
 			if args.cleanonly:
 				pubrunner.cleanWorkingDirectory(tempDir,args.test)
