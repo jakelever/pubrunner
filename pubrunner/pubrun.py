@@ -156,7 +156,8 @@ def downloadPMIDSFromPMC(workingDirectory):
 	return pmids
 
 def cleanup():
-	os.rmdir('.pubrunner_lock')
+	if os.path.isdir('.pubrunner_lock'):
+		shutil.remove('.pubrunner_lock')
 	if os.path.isdir('.snakemake'):
 		shutil.rmtree('.snakemake')
 
