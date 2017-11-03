@@ -16,8 +16,8 @@ PubRunner
    :target: https://coveralls.io/github/jakelever/pubrunner?branch=master
    :alt: Coverage status
    
-.. |docs| image:: https://readthedocs.org/projects/pubrunner/badge/?version=latest
-   :target: http://pubrunner.readthedocs.io/en/latest/
+.. |docs| image:: https://readthedocs.org/projects/pubrunner/badge/?version=stable
+   :target: http://pubrunner.readthedocs.io/en/stable/
    :alt: Documentation status
    
 .. |license| image:: https://img.shields.io/badge/License-MIT-blue.svg
@@ -50,6 +50,11 @@ Examples
 
 Check out the `examples directory`_ to see a small number of projects that use PubRunner on Pubmed.
 
+Documentation
+--------
+
+Documentation including a tutorial can be found at the `readthedocs`_ page.
+
 Contributing
 ------------
 Contributions are very welcome.
@@ -64,6 +69,7 @@ Issues
 
 If you encounter any problems, please `file an issue`_ along with a detailed description.
 
+.. _`readthedocs`: http://pubrunner.readthedocs.io/en/stable/
 .. _`MIT`: http://opensource.org/licenses/MIT
 .. _`file an issue`: https://github.com/jakelever/pubrunner/issues
 .. _`pip`: https://pypi.python.org/pypi/pip/
