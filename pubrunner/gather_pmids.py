@@ -19,7 +19,10 @@ def gatherPMIDs(inHashDir,outPMIDDir,whichHashes=None,pmidExclusions=None):
 			if whichHashes is None:
 				hashVal = hashes[filename][pmid]
 			else:
-				hashVal = [ hashes[filename][pmid][h] for h in whichHashes ]
+				try:
+					hashVal = [ hashes[filename][pmid][h] for h in whichHashes ]
+				except KeyError as e:
+					raise RuntimeError("The selected hash (%s) from the 'usePubmedHashes' option has not been found in the hash files." % (str(e)))
 
 			pmidInt = int(pmid)
 			if pmidHashes[pmidInt] != hashVal:

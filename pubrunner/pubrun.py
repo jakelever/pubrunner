@@ -50,7 +50,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 				resName,resSettings = list(resName.items())[0]
 				resInfo = getResourceInfo(resName)
 
-				allowed = ['rename','format','removePMCOADuplicates']
+				allowed = ['rename','format','removePMCOADuplicates','usePubmedHashes']
 				for k in resSettings.keys():
 					assert k in allowed, "Unexpected attribute (%s) for resource %s" % (k,resName)
 
@@ -79,6 +79,9 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 					conversionInfo['chunkSize'] = chunkSize
 					conversions.append( conversionInfo )
 
+					whichHashes = None
+					if "usePubmedHashes" in resSettings:
+						whichHashes = [ p.strip() for p in resSettings["usePubmedHashes"].split(',') ]
 
 					resourceSymlink = os.path.join(workingDirectory,inDir)
 					if not os.path.islink(resourceSymlink):
@@ -86,7 +89,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 
 					if "generatePubmedHashes" in resInfo and resInfo["generatePubmedHashes"] == True:
 						hashesSymlink = os.path.join(workingDirectory,inDir+'.hashes')
-						hashesInfo = {'resourceDir':os.path.join(workingDirectory,inDir),'hashDir':hashesSymlink,'removePMCOADuplicates':removePMCOADuplicates}
+						hashesInfo = {'resourceDir':os.path.join(workingDirectory,inDir),'hashDir':hashesSymlink,'removePMCOADuplicates':removePMCOADuplicates,'whichHashes':whichHashes}
 
 						resourcesWithHashes.append(hashesInfo)
 						if not os.path.islink(hashesSymlink):
@@ -211,15 +214,17 @@ def pubrun(directory,doTest):
 		print("\nUsing Pubmed Hashes to identify updates")
 		for hashesInfo in toolSettings["pubmed_hashes"]:
 			hashDirectory = hashesInfo['hashDir']
+			whichHashes = hashesInfo['whichHashes']
 			removePMCOADuplicates = hashesInfo['removePMCOADuplicates']
+			print("HASHES",hashDirectory,whichHashes,removePMCOADuplicates)
 
 			pmidDirectory = hashesInfo["resourceDir"].rstrip('/') + '.pmids'
 			print("Using hashes in %s to identify PMID updates" % hashDirectory)
 			if removePMCOADuplicates:
 				assert not pmidsFromPMCFile is None
-				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory,pmidExclusions=pmidsFromPMCFile)
+				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory,whichHashes=whichHashes,pmidExclusions=pmidsFromPMCFile)
 			else:
-				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory)
+				pubrunner.gatherPMIDs(hashDirectory,pmidDirectory,whichHashes=whichHashes)
 
 	print("\nRunning conversions")
 	for conversionInfo in toolSettings["conversions"]:
