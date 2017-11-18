@@ -216,7 +216,6 @@ def pubrun(directory,doTest):
 			hashDirectory = hashesInfo['hashDir']
 			whichHashes = hashesInfo['whichHashes']
 			removePMCOADuplicates = hashesInfo['removePMCOADuplicates']
-			print("HASHES",hashDirectory,whichHashes,removePMCOADuplicates)
 
 			pmidDirectory = hashesInfo["resourceDir"].rstrip('/') + '.pmids'
 			print("Using hashes in %s to identify PMID updates" % hashDirectory)
