@@ -234,7 +234,7 @@ def processPMCFile(pmcFile):
 					
 					journal = articleElem.findall('./front/journal-meta/journal-title-group/journal-title') + articleElem.findall('./front-stub/journal-title-group/journal-title')
 					assert len(journal) <= 1
-					journalText = extractTextFromElemList(journal)
+					journalText = " ".join(extractTextFromElemList(journal))
 					
 					journalISOText = ''
 					journalISO = articleElem.findall('./front/journal-meta/journal-id') + articleElem.findall('./front-stub/journal-id')
@@ -311,6 +311,7 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 		for pmDoc in processMedlineFile(pubmedxmlFilename):
 			biocDoc = bioc.BioCDocument()
 			biocDoc.id = pmDoc["pmid"]
+			biocDoc.infons['title'] = " ".join(pmDoc["title"])
 			biocDoc.infons['pmid'] = pmDoc["pmid"]
 			biocDoc.infons['year'] = pmDoc["pubYear"]
 			biocDoc.infons['journal'] = pmDoc["journal"]
@@ -334,6 +335,7 @@ def pmcxml2bioc(pmcxmlFilename, biocFilename):
 		for pmcDoc in processPMCFile(pmcxmlFilename):
 			biocDoc = bioc.BioCDocument()
 			biocDoc.id = pmcDoc["pmid"]
+			biocDoc.infons['title'] = " ".join(pmcDoc["textSources"]["title"])
 			biocDoc.infons['pmid'] = pmcDoc["pmid"]
 			biocDoc.infons['pmcid'] = pmcDoc["pmcid"]
 			biocDoc.infons['doi'] = pmcDoc["doi"]
