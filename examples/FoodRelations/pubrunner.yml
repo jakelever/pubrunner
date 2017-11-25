@@ -27,7 +27,7 @@ build:
 #   - python extractFoodOnTerms.py --owlFiles {IN:FOODON}/imports/langual_import.owl,{IN:FOODON}/imports/ncbitaxon_import.owl,{IN:FOODON}/imports/foodon_product_import.owl,{IN:FOODON}/imports/product_type_import.owl --outFile {OUT:FOOD.JSON}
    - cp food.json {OUT:FOOD.JSON}
 run:
-   - python cooccurrenceExtractor.py --biocFile {IN:AGRICOLA/*.xml} --wordlist1 {IN:FOOD.JSON} --wordlist2 {IN:CHEMICAL.JSON} --outFile {OUT:TMPDIR/*.cooccurrences}
+   - python cooccurrenceExtractor.py --biocFile {IN:AGRICOLA/%.xml} --wordlist1 {IN:FOOD.JSON} --wordlist2 {IN:CHEMICAL.JSON} --outFile {OUT:TMPDIR/%.cooccurrences}
    - python combineCooccurrences.py --inDir {IN:TMPDIR} --outFile {OUT:RESULTS.TXT}
 output: RESULTS.TXT
 
