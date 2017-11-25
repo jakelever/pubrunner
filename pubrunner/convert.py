@@ -138,6 +138,8 @@ def processMedlineFile(pubmedFile):
 			pmidFields = elem.findall('./PMID')
 			yearFields = elem.findall('./Article/Journal/JournalIssue/PubDate/Year')
 			medlineDateFields = elem.findall('./Article/Journal/JournalIssue/PubDate/MedlineDate')
+			journalTitleFields = elem.findall('./Article/Journal/Title')
+			journalTitleISOFields = elem.findall('./Article/Journal/ISOAbbreviation')
 
 			# Try to extract the pmidID
 			pmid = ''
@@ -171,12 +173,17 @@ def processMedlineFile(pubmedFile):
 			abstractText = [ t for t in abstractText if len(t) > 0 ]
 			abstractText = [ htmlUnescape(t) for t in abstractText ]
 			abstractText = [ removeBracketsWithoutWords(t) for t in abstractText ]
+			
+			journalTitle = " ".join(extractTextFromElemList(journalTitleFields))
+			journalISOTitle = " ".join(extractTextFromElemList(journalTitleISOFields))
 
 			document = {}
 			document["pmid"] = pmid
 			document["pubYear"] = pubYear
-			document["titleText"] = titleText
-			document["abstractText"] = abstractText
+			document["title"] = titleText
+			document["abstract"] = abstractText
+			document["journal"] = journalTitle
+			document["journalISO"] = journalISOTitle
 
 			yield document
 		
@@ -299,16 +306,21 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 		for pmDoc in processMedlineFile(pubmedxmlFilename):
 			biocDoc = bioc.BioCDocument()
 			biocDoc.id = pmDoc["pmid"]
-			#print biocDoc.id
+			biocDoc.infons['pmid'] = pmDoc["pmid"]
+			biocDoc.infons['year'] = pmDoc["pubYear"]
+			biocDoc.infons['journal'] = pmDoc["journal"]
+			biocDoc.infons['journalISO'] = pmDoc["journalISO"]
 	
 			offset = 0
-			for textSource in pmDoc["titleText"] + pmDoc["abstractText"]:
-				textSource = trimSentenceLengths(textSource)
-				passage = bioc.BioCPassage()
-				passage.text = textSource
-				passage.offset = offset
-				offset += len(textSource)
-				biocDoc.add_passage(passage)
+			for section in ["title","abstract"]:
+				for textSource in pmDoc[section]:
+					textSource = trimSentenceLengths(textSource)
+					passage = bioc.BioCPassage()
+					passage.infons['section'] = section
+					passage.text = textSource
+					passage.offset = offset
+					offset += len(textSource)
+					biocDoc.add_passage(passage)
 
 			writer.writedocument(biocDoc)
 
