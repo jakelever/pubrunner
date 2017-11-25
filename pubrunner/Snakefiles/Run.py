@@ -88,6 +88,10 @@ def processCommand(dataDir,command):
 
 		location = os.path.join(dataDir,value).replace('%','{wildcard}')
 
+		# Deal with asterisk wildcard by expanding out to all files
+		if '*' in location:
+			location = glob.glob(location)
+
 		if vartype == 'IN':
 			inputVariables[name] = location
 		elif vartype == 'OUT':
