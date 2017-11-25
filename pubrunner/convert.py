@@ -217,11 +217,6 @@ def processPMCFile(pmcFile):
 						if subPubYear == '':
 							subPubYear = pubYear
 							
-						
-					# Information about the source of this text
-
-						
-					
 					# Extract the title of paper
 					title = articleElem.findall('./front/article-meta/title-group/article-title') + articleElem.findall('./front-stub/title-group/article-title')
 					assert len(title) <= 1
@@ -237,20 +232,30 @@ def processPMCFile(pmcFile):
 					abstract = articleElem.findall('./front/article-meta/abstract') + articleElem.findall('./front-stub/abstract')
 					abstractText = extractTextFromElemList(abstract)
 					
+					journal = articleElem.findall('./front/journal-meta/journal-title-group/journal-title') + articleElem.findall('./front-stub/journal-title-group/journal-title')
+					assert len(journal) <= 1
+					journalText = extractTextFromElemList(journal)
+					
+					journalISOText = ''
+					journalISO = articleElem.findall('./front/journal-meta/journal-id') + articleElem.findall('./front-stub/journal-id')
+					for field in journalISO:
+						if 'journal-id-type' in field.attrib and field.attrib['journal-id-type'] == "iso-abbrev":
+							journalISOText = field.text
+					
 					# Extract the full text from the paper as well as supplementaries and floating blocks of text
 					articleText = extractTextFromElemList(articleElem.findall('./body'))
 					backText = extractTextFromElemList(articleElem.findall('./back'))
 					floatingText = extractTextFromElemList(articleElem.findall('./floats-group'))
 					
-					document = {'pmid':subPmidText, 'pmcid':subPmcidText, 'doi':subDoiText, 'pubYear':subPubYear}
+					document = {'pmid':subPmidText, 'pmcid':subPmcidText, 'doi':subDoiText, 'pubYear':subPubYear, 'journal':journalText, 'journalISO':journalISOText}
 
 					textSources = {}
-					textSources['titleText'] = titleText
-					textSources['subtitleText'] = subtitleText
-					textSources['abstractText'] = abstractText
-					textSources['articleText'] = articleText
-					textSources['backText'] = backText
-					textSources['floatingText'] = floatingText
+					textSources['title'] = titleText
+					textSources['subtitle'] = subtitleText
+					textSources['abstract'] = abstractText
+					textSources['article'] = articleText
+					textSources['back'] = backText
+					textSources['floating'] = floatingText
 
 					for k in textSources.keys():
 						tmp = textSources[k]
@@ -329,12 +334,19 @@ def pmcxml2bioc(pmcxmlFilename, biocFilename):
 		for pmcDoc in processPMCFile(pmcxmlFilename):
 			biocDoc = bioc.BioCDocument()
 			biocDoc.id = pmcDoc["pmid"]
+			biocDoc.infons['pmid'] = pmcDoc["pmid"]
+			biocDoc.infons['pmcid'] = pmcDoc["pmcid"]
+			biocDoc.infons['doi'] = pmcDoc["doi"]
+			biocDoc.infons['year'] = pmcDoc["pubYear"]
+			biocDoc.infons['journal'] = pmcDoc["journal"]
+			biocDoc.infons['journalISO'] = pmcDoc["journalISO"]
 
 			offset = 0
 			for groupName,textSourceGroup in pmcDoc["textSources"].items():
 				for textSource in textSourceGroup:
 					textSource = trimSentenceLengths(textSource)
 					passage = bioc.BioCPassage()
+					passage.infons['section'] = groupName
 					passage.text = textSource
 					passage.offset = offset
 					offset += len(textSource)
