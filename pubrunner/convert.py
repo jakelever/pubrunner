@@ -131,24 +131,31 @@ def getMetaInfoForPMCArticle(articleElem):
 	return pmidText,pmcidText,doiText,pubYear
 
 def processMedlineFile(pubmedFile):
+	yearRegex = re.compile(r'(18|19|20)\d\d')
 	for event, elem in etree.iterparse(pubmedFile, events=('start', 'end', 'start-ns', 'end-ns')):
 		if (event=='end' and elem.tag=='MedlineCitation'):
 			# Find the elements for the PubMed ID, and publication date information
-			pmid = elem.findall('./PMID')
+			pmidFields = elem.findall('./PMID')
 			yearFields = elem.findall('./Article/Journal/JournalIssue/PubDate/Year')
 			medlineDateFields = elem.findall('./Article/Journal/JournalIssue/PubDate/MedlineDate')
 
 			# Try to extract the pmidID
-			pmidText = ''
-			if len(pmid) > 0:
-				pmidText = " ".join( [a.text.strip() for a in pmid if a.text ] )
+			pmid = ''
+			if len(pmidFields) > 0:
+				pmid = " ".join( [a.text.strip() for a in pmidFields if a.text ] )
 
 			# Try to extract the publication date
-			pubYear = 0
+			pubYearText = ''
 			if len(yearFields) > 0:
-				pubYear = yearFields[0].text
+				pubYearText = yearFields[0].text
 			if len(medlineDateFields) > 0:
-				pubYear = medlineDateFields[0].text[0:4]
+				pubYearText = medlineDateFields[0].text[0:4]
+
+			pubYear = None
+			if not pubYearText is None:
+				regexSearch = re.search(yearRegex,pubYearText)
+				if regexSearch:
+					pubYear = regexSearch.group()
 
 			# Extract the title of paper
 			title = elem.findall('./Article/ArticleTitle')
@@ -166,7 +173,7 @@ def processMedlineFile(pubmedFile):
 			abstractText = [ removeBracketsWithoutWords(t) for t in abstractText ]
 
 			document = {}
-			document["pmid"] = pmidText
+			document["pmid"] = pmid
 			document["pubYear"] = pubYear
 			document["titleText"] = titleText
 			document["abstractText"] = abstractText
