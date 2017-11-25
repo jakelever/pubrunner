@@ -91,6 +91,7 @@ def processCommand(dataDir,command):
 		# Deal with asterisk wildcard by expanding out to all files
 		if '*' in location:
 			location = glob.glob(location)
+			assert len(location) > 0, "No matching files found for wildcard: %s" % value
 
 		if vartype == 'IN':
 			inputVariables[name] = location
