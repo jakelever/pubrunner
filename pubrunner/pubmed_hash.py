@@ -23,9 +23,11 @@ def pubmed_hash(pubmedXMLFiles,outHashJSON):
 			pmid = doc['pmid']
 
 			hashes = {}
-			hashes['pubYear'] = md5(doc['pubYear'])
-			hashes['titleText'] = md5(doc['titleText'])
-			hashes['abstractText'] = md5(doc['abstractText'])
+			hashes['year'] = md5(doc['pubYear'])
+			hashes['title'] = md5(doc['title'])
+			hashes['abstract'] = md5(doc['abstract'])
+			hashes['journal'] = md5(doc['journal'])
+			hashes['journalISO'] = md5(doc['journalISO'])
 
 			allHashes[f][pmid] = hashes
 			docCount += 1
