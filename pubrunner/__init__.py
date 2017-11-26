@@ -1,6 +1,6 @@
 
 from pubrunner.upload import pushToFTP, pushToLocalDirectory, pushToZenodo
-from pubrunner.getresource import getResource,calcSHA256,download
+from pubrunner.getresource import getResource,calcSHA256,download,getResourceInfo
 from pubrunner.pubrun import pubrun,cleanWorkingDirectory
 from pubrunner.convert import convertFiles,processMedlineFile
 from pubrunner.pubmed_hash import pubmed_hash

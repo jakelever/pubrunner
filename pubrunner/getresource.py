@@ -111,7 +111,19 @@ def generatePubmedHashes(inDir,outDir):
 	parameters = {'INDIR':inDir,'OUTDIR':outDir}
 	pubrunner.launchSnakemake(snakeFile,parameters=parameters)
 	
+def getResourceInfo(resource):
+	packagePath = os.path.dirname(pubrunner.__file__)
+	pubrunnerResourcePath = os.path.join(packagePath,'resources','%s.yml' % resource)
+	projectResourcePath = os.path.join('resources','%s.yml' % resource)
 
+	options = [pubrunnerResourcePath,projectResourcePath]
+	for option in options:
+		if os.path.isfile(option):
+			with open(option) as f:
+				resourceInfo = yaml.load(f)
+			return resourceInfo
+
+	raise RuntimeError("Unable to find resource YAML file for resource: %s" % resource)
 
 def getResource(resource):
 	print("Fetching resource: %s" % resource)
@@ -120,13 +132,7 @@ def getResource(resource):
 	resourceDir = os.path.expanduser(globalSettings["storage"]["resources"])
 	thisResourceDir = os.path.join(resourceDir,resource)
 
-	packagePath = os.path.dirname(pubrunner.__file__)
-	resourceYamlPath = os.path.join(packagePath,'resources','%s.yml' % resource)
-	assert os.path.isfile(resourceYamlPath), "Can not find appropriate file for resource: %s" % resource
-
-	with open(resourceYamlPath) as f:
-		resourceInfo = yaml.load(f)
-
+	resourceInfo = getResourceInfo(resource)
 	#print(json.dumps(resourceInfo,indent=2))
 
 	if resourceInfo['type'] == 'git':

@@ -27,15 +27,7 @@ def getResourceLocation(resource):
 	resourceDir = os.path.expanduser(globalSettings["storage"]["resources"])
 	thisResourceDir = os.path.join(resourceDir,resource)
 	return thisResourceDir
-
-def getResourceInfo(resource):
-	packagePath = os.path.dirname(pubrunner.__file__)
-	resourceYamlPath = os.path.join(packagePath,'resources','%s.yml' % resource)
-	with open(resourceYamlPath) as f:
-		resourceInfo = yaml.load(f)
-
-	return resourceInfo
-
+	
 def processResourceSettings(toolSettings,mode,workingDirectory):
 	newResourceList = []
 	#preprocessingCommands = []
@@ -48,7 +40,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 
 				# TODO: Rename resSettings and resInfo to be more meaningful
 				resName,resSettings = list(resName.items())[0]
-				resInfo = getResourceInfo(resName)
+				resInfo = pubrunner.getResourceInfo(resName)
 
 				allowed = ['rename','format','removePMCOADuplicates','usePubmedHashes']
 				for k in resSettings.keys():
@@ -61,7 +53,12 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 				if "format" in resSettings:
 					inDir = nameToUse + "_UNCONVERTED"
 					inFormat = resInfo["format"]
-					chunkSize = resInfo["chunkSize"]
+
+					if 'chunkSize' in resInfo:
+						chunkSize = resInfo["chunkSize"]
+					else:
+						chunkSize = 1
+
 					outDir = nameToUse
 					outFormat = resSettings["format"]
 
