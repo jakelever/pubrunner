@@ -36,7 +36,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 	for resourceGroupName in ["all",mode]:
 		for resName in toolSettings["resources"][resourceGroupName]:
 			if isinstance(resName,dict):
-				assert len(resName.items()) == 1
+				assert len(resName.items()) == 1, "ERROR in pubrunner.yml: A resource (%s) is not being parsed correctly. It is likely that the resource settings (e.g. format) are not indented properly. Try indenting more" % (str(list(resName.keys())[0]))
 
 				# TODO: Rename resSettings and resInfo to be more meaningful
 				resName,resSettings = list(resName.items())[0]
