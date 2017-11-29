@@ -5,6 +5,8 @@ import json
 from collections import defaultdict
 
 def md5(text):
+	if text is None:
+		return ''
 	if isinstance(text,list):
 		text = "\n".join(text)
 
