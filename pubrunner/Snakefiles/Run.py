@@ -70,10 +70,16 @@ def predictOutputFiles(inputVariables,outputVariables):
 
 def processCommand(dataDir,command):
 	assert isinstance(command,six.string_types)
-	regex = re.compile("\{(?P<type>(IN|OUT)):(?P<value>\S*)\}")
+	#regex = re.compile("\{(?P<type>(IN|OUT)):(?P<value>\S*)\}")
+	regex = re.compile("\{(?P<content>[^}]*)\}")
 	variablesWithLocations = []
 	for m in regex.finditer(command):
-		variableWithLocation = (m.start(), m.end(), m.groupdict()['type'], m.groupdict()['value'])
+		content = m.groupdict()['content'].split(':')
+		assert len(content)==2, "ERROR for: Inputs/outputs in PubRunner commands must follow the format of {IN:pattern} or {OUT:pattern}. No other curly brackets are allowed as they clash with PubRunner & SnakeMake." % m.groupdict()['content']
+		vartype,value = content
+		assert vartype == 'IN' or vartype == 'OUT', "ERROR for: %s. Inputs/outputs in PubRunner commands must follow the format of {IN:pattern} or {OUT:pattern}. No other curly brackets are allowed as they clash with PubRunner & SnakeMake." % m.groupdict()['content']
+
+		variableWithLocation = (m.start(), m.end(), vartype, value)
 		variablesWithLocations.append(variableWithLocation)
 	variablesWithLocations = sorted(variablesWithLocations,reverse=True)
 
@@ -88,17 +94,23 @@ def processCommand(dataDir,command):
 
 		location = os.path.join(dataDir,value).replace('%','{wildcard}')
 
-		# Deal with asterisk wildcard by expanding out to all files
-		if '*' in location:
-			location = glob.glob(location)
-			assert len(location) > 0, "No matching files found for wildcard: %s" % value
-
 		if vartype == 'IN':
 			inputVariables[name] = location
 		elif vartype == 'OUT':
 			outputVariables[name] = location
 
 	return newCommand,inputVariables,outputVariables
+
+def expandAsteriskWildcards(variables):
+	newVariables = {}
+	for name,location in variables.items():
+		# Deal with asterisk wildcard by expanding out to all files
+		if '*' in location:
+			location = glob.glob(location)
+			assert len(location) > 0, "No matching files found for wildcard: %s" % value
+		newVariables[name] = location
+	return newVariables
+
 
 def addTouchToCommands(command,outputVariables):
 	for varName,outputPath in outputVariables.items():
@@ -133,6 +145,9 @@ if not os.path.isdir(dataDir):
 command,inputVariables,outputVariables = processCommand(dataDir,unprocessedCommand)
 
 checkVariables(inputVariables,outputVariables)
+
+inputVariables = expandAsteriskWildcards(inputVariables)
+
 expectedOutputFiles = predictOutputFiles(inputVariables,outputVariables)
 
 command = addTouchToCommands(command,outputVariables)
