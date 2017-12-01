@@ -1,7 +1,7 @@
 name: PUBMED_TWOFILES
 url:
-  - ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline/medline17n0891.xml.gz
-  - ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline/medline17n0892.xml.gz
+  - ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline/pubmed18n0927.xml.gz
+  - ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline/pubmed18n0928.xml.gz
 type: dir
 format: pubmedxml
 filter: .xml
