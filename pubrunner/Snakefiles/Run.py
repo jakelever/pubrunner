@@ -4,6 +4,7 @@ import re
 import six
 import os
 import shutil
+import hashlib
 
 def predictOutputFiles2(inPattern,outPattern):
 	outfiles = []
@@ -85,6 +86,7 @@ def processCommand(dataDir,command):
 
 	inputVariables,outputVariables = {},{}
 	newCommand = command
+	inputPercentWildcard,outputPercentWildcard = False,False
 	for i,(start,end,vartype,value) in enumerate(variablesWithLocations):
 		assert vartype == 'IN' or vartype == 'OUT'
 
@@ -92,12 +94,53 @@ def processCommand(dataDir,command):
 		name = "%s%04d" % (vartype,i)
 		newCommand = newCommand[:start] + '{%s.%s}' % (snakevartype,name) + newCommand[end:]
 
+		if '%' in value:
+			if vartype == 'IN':
+				inputPercentWildcard = True
+			elif vartype == 'OUT':
+				outputPercentWildcard = True
+
 		location = os.path.join(dataDir,value).replace('%','{wildcard}')
 
 		if vartype == 'IN':
 			inputVariables[name] = location
 		elif vartype == 'OUT':
 			outputVariables[name] = location
+
+	# For the case where a percent wildcard is used in an input but not an output.
+	# We need to add an artificial (and hidden) output file with a wildcard
+	if inputPercentWildcard and not outputPercentWildcard:
+		md5 = hashlib.md5()
+		md5.update(bytes(command.encode('utf-8')))
+		commandHash = str(md5.hexdigest())
+		hiddenDir = os.path.join(dataDir,'.hidden',commandHash)
+		if not os.path.isdir(hiddenDir):
+			os.makedirs(hiddenDir)
+
+		artificialName = 'artificial'
+		artificialOutput = os.path.join(hiddenDir,'{wildcard}.txt')
+		outputVariables[artificialName] = artificialOutput
+		#newCommand = 'touch {output.%s}; %s' % (artificialName, newCommand)
+
+		print(inputVariables)
+		print(outputVariables)
+		print(newCommand)
+
+		outputPercentWildcard = True
+
+	# If there are wildcards used in the outputs, we actually need to remove any non-wildcard arguments and just put them directly into the command
+	if outputPercentWildcard:
+		toRemove = []
+		for name in outputVariables.keys():
+			if not '{wildcard}' in outputVariables[name]:
+				toRemove.append(name)
+				newCommand = newCommand.replace('{output.%s}'%name, outputVariables[name])
+				print('{output.%s}'%name, outputVariables[name])
+		for tr in toRemove:
+			del outputVariables[tr]
+		print(outputVariables)
+		print(newCommand)
+	
 
 	return newCommand,inputVariables,outputVariables
 
@@ -155,7 +198,7 @@ command = addTouchToCommands(command,outputVariables)
 #print("command:",command)
 #print("inputVariables",inputVariables)
 #print("outputVariables",outputVariables)
-#print("expectedOutputFiles",expectedOutputFiles)
+print("expectedOutputFiles",expectedOutputFiles)
 
 # If we can determine the output files, we will create a dependency on them to force the main rule to run
 if len(expectedOutputFiles) > 0:
