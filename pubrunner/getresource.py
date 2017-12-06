@@ -128,7 +128,7 @@ def getResourceInfo(resource):
 	raise RuntimeError("Unable to find resource YAML file for resource: %s" % resource)
 
 def generateFileListing(thisResourceDir):
-	listing = glob.glob('./pubrunner/**',recursive=True)
+	listing = glob.glob(thisResourceDir + '/**',recursive=True)
 	with open(thisResourceDir + '.listing.json','w') as f:
 		json.dump(listing,f)
 
