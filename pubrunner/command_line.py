@@ -19,7 +19,7 @@ def main():
 	parser.add_argument('codebase',nargs='?',type=str,help='Code base containing the text mining tool to execute. Code base should contain a pubrunner.yml file. The code base can be a directory, Github repo or archive')
 	parser.add_argument('--defaultsettings',action='store_true',help='Use default .pubrunner.settings.xml. Ignore ~/.pubrunner.settings.yml if it exists.')
 	parser.add_argument('--ignorecluster',action='store_true',help='Ignore any cluster settings and run everything locally')
-	parser.add_argument('--cleanonly',action='store_true',help='Remove the existing working directory')
+	parser.add_argument('--clean',action='store_true',help='Remove the existing working directory')
 	parser.add_argument('--test',action='store_true',help='Run the test functionality instead of the full run')
 	parser.add_argument('--getResource',required=False,type=str,help='Fetch a specific resource (instead of doing a normal PubRunner run). This is really only needed for debugging and understanding resources.')
 
@@ -51,7 +51,7 @@ def main():
 			del globalSettings["cluster"]
 
 	if os.path.isdir(args.codebase):
-		if args.cleanonly:
+		if args.clean:
 			pubrunner.cleanWorkingDirectory(args.codebase,args.test)
 		else:
 			pubrunner.pubrun(args.codebase,args.test)
@@ -60,7 +60,7 @@ def main():
 		try:
 			print("Cloning Github repo")
 			tempDir = cloneGithubRepoToTempDir(args.codebase)
-			if args.cleanonly:
+			if args.clean:
 				pubrunner.cleanWorkingDirectory(tempDir,args.test)
 			else:
 				pubrunner.pubrun(tempDir,args.test)
