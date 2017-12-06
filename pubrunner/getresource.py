@@ -10,6 +10,8 @@ import hashlib
 import six
 import ftputil
 import tarfile
+import glob
+import json
 
 def calcSHA256(filename):
 	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
@@ -125,6 +127,11 @@ def getResourceInfo(resource):
 
 	raise RuntimeError("Unable to find resource YAML file for resource: %s" % resource)
 
+def generateFileListing(thisResourceDir):
+	listing = glob.glob('./pubrunner/**',recursive=True)
+	with open(thisResourceDir + '.listing.json','w') as f:
+		json.dump(listing,f)
+
 def getResource(resource):
 	print("Fetching resource: %s" % resource)
 
@@ -145,6 +152,9 @@ def getResource(resource):
 		else:
 			os.makedirs(thisResourceDir)
 			git.Repo.clone_from(resourceInfo["url"], thisResourceDir)
+		
+		generateFileListing(thisResourceDir)
+
 		return thisResourceDir
 	elif resourceInfo['type'] == 'dir':
 		assert isinstance(resourceInfo['url'], six.string_types) or isinstance(resourceInfo['url'],list), 'The URL for a dir resource must be a single or multiple addresses'
@@ -194,6 +204,8 @@ def getResource(resource):
 				os.makedirs(hashDir)
 
 			generatePubmedHashes(thisResourceDir,hashDir)
+
+		generateFileListing(thisResourceDir)
 
 		return thisResourceDir
 	else:
