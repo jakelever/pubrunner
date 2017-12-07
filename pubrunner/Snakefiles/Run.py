@@ -122,10 +122,6 @@ def processCommand(dataDir,command):
 		outputVariables[artificialName] = artificialOutput
 		#newCommand = 'touch {output.%s}; %s' % (artificialName, newCommand)
 
-		print(inputVariables)
-		print(outputVariables)
-		print(newCommand)
-
 		outputPercentWildcard = True
 
 	# If there are wildcards used in the outputs, we actually need to remove any non-wildcard arguments and just put them directly into the command
@@ -138,9 +134,6 @@ def processCommand(dataDir,command):
 				print('{output.%s}'%name, outputVariables[name])
 		for tr in toRemove:
 			del outputVariables[tr]
-		print(outputVariables)
-		print(newCommand)
-	
 
 	return newCommand,inputVariables,outputVariables
 
@@ -198,7 +191,7 @@ command = addTouchToCommands(command,outputVariables)
 #print("command:",command)
 #print("inputVariables",inputVariables)
 #print("outputVariables",outputVariables)
-print("expectedOutputFiles",expectedOutputFiles)
+#print("expectedOutputFiles",expectedOutputFiles)
 
 # If we can determine the output files, we will create a dependency on them to force the main rule to run
 if len(expectedOutputFiles) > 0:
