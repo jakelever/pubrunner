@@ -207,12 +207,15 @@ def pubrun(directory,doTest):
 		print("\nGetting list of PMIDs in Pubmed Central")
 		pmidsFromPMCFile = downloadPMIDSFromPMC(workingDirectory)
 
+	directoriesWithHashes = set()
 	if toolSettings["pubmed_hashes"] != []:
 		print("\nUsing Pubmed Hashes to identify updates")
 		for hashesInfo in toolSettings["pubmed_hashes"]:
 			hashDirectory = hashesInfo['hashDir']
 			whichHashes = hashesInfo['whichHashes']
 			removePMCOADuplicates = hashesInfo['removePMCOADuplicates']
+
+			directoriesWithHashes.add(hashesInfo['resourceDir'])
 
 			pmidDirectory = hashesInfo["resourceDir"].rstrip('/') + '.pmids'
 			print("Using hashes in %s to identify PMID updates" % hashDirectory)
@@ -229,7 +232,7 @@ def pubrun(directory,doTest):
 		chunkSize = conversionInfo['chunkSize']
 		parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
 
-		if inDir in toolSettings["pubmed_hashes"]:
+		if inDir in directoriesWithHashes:
 			pmidDirectory = inDir.rstrip('/') + '.pmids'
 			assert os.path.isdir(pmidDirectory), "Cannot find PMIDs directory for resource. Tried: %s" % pmidDirectory
 			parameters['PMIDDIR'] = pmidDirectory
