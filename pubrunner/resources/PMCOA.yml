@@ -12,4 +12,4 @@ type: dir
 format: pmcxml
 filter: .nxml
 unzip: true
-chunkSize: 10000
+chunkSize: 2000
