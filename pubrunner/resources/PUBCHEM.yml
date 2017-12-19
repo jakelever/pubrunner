@@ -3,6 +3,6 @@ url:
 #  - ftp://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-PMID.gz
 #  - ftp://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-Synonym-filtered.gz
   - ftp://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/MeSH-Pharm
-type: dir
+type: remote
 unzip: True
 

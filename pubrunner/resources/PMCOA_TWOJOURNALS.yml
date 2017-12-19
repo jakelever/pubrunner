@@ -1,7 +1,7 @@
 name: PMCOA_TWOJOURNALS
 url:
    - http://bcgsc.ca/downloads/jlever/PMCOA_TWOJOURNALS.tar.gz
-type: dir
+type: remote
 format: pmcxml
 filter: .nxml
 unzip: true
