@@ -153,7 +153,7 @@ def getResource(resource):
 			os.makedirs(thisResourceDir)
 			git.Repo.clone_from(resourceInfo["url"], thisResourceDir)
 		
-		generateFileListing(thisResourceDir)
+		#generateFileListing(thisResourceDir)
 
 		return thisResourceDir
 	elif resourceInfo['type'] == 'dir':
@@ -205,7 +205,7 @@ def getResource(resource):
 
 			generatePubmedHashes(thisResourceDir,hashDir)
 
-		generateFileListing(thisResourceDir)
+		#generateFileListing(thisResourceDir)
 
 		return thisResourceDir
 	else:
