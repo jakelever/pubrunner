@@ -156,8 +156,8 @@ def getResource(resource):
 		#generateFileListing(thisResourceDir)
 
 		return thisResourceDir
-	elif resourceInfo['type'] == 'dir':
-		assert isinstance(resourceInfo['url'], six.string_types) or isinstance(resourceInfo['url'],list), 'The URL for a dir resource must be a single or multiple addresses'
+	elif resourceInfo['type'] == 'remote':
+		assert isinstance(resourceInfo['url'], six.string_types) or isinstance(resourceInfo['url'],list), 'The URL for a remote resource must be a single or multiple addresses'
 		if isinstance(resourceInfo['url'], six.string_types):
 			urls = [resourceInfo['url']]
 		else:
@@ -208,5 +208,13 @@ def getResource(resource):
 		#generateFileListing(thisResourceDir)
 
 		return thisResourceDir
+	elif resourceInfo['type'] == 'local':
+		assert isinstance(resourceInfo['directory'], six.string_types) and os.path.isdir(resourceInfo['directory']), 'The directory for a remote resource must be a string and exist'
+
+		if not os.path.islink(thisResourceDir) and os.path.isdir(thisResourceDir):
+			shutil.rmtree(thisResourceDir)
+
+		if not os.path.islink(thisResourceDir):
+			os.symlink(resourceInfo['directory'],thisResourceDir)
 	else:
 		raise RuntimeError("Unknown resource type (%s) for resource: %s" % (resourceInfo['type'],resource))
