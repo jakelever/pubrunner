@@ -46,10 +46,10 @@ def predictOutputFiles(inputVariables,outputVariables):
 		for potentialInputFile in glob.glob(inPattern.replace('{wildcard}','*')):
 			wildcardValue = re.match(inPattern.replace('{wildcard}','(.*)'), potentialInputFile).groups()[0]
 			wildcardValues.add(wildcardValue)
-		if i == 0:
+		if allWildcardValues is None:
 		 	allWildcardValues = wildcardValues
 		else:
-		 	allWildcardValues = allWildcardValues.intersection(wildcardValue)
+			allWildcardValues = allWildcardValues.intersection(wildcardValues)
 
 	inputContainsPercentWildcards = isinstance(allWildcardValues,set)
 	if inputContainsPercentWildcards:
@@ -131,7 +131,6 @@ def processCommand(dataDir,command):
 			if not '{wildcard}' in outputVariables[name]:
 				toRemove.append(name)
 				newCommand = newCommand.replace('{output.%s}'%name, outputVariables[name])
-				print('{output.%s}'%name, outputVariables[name])
 		for tr in toRemove:
 			del outputVariables[tr]
 
