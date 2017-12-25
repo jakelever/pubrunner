@@ -44,21 +44,21 @@ However, the default format of Pubmed is the Pubmed XML format. Our text mining 
 Adding Commands
 ---------------
 
-Now we want to put in the shell commands to actually run our scripts on all of PubMed. We will use a certain notation to denote the input and output files. First we want to run Count.py on all the individual files in PubMed. We will use the wildcard system for this. The PUBMED resource is composed of a large set of files, and we want to run a Count.py instance for each file. The wildcard system allows us to generalise a command for all the files that fit a particular pattern. 
+Now we want to put in the shell commands to actually run our scripts on all of PubMed. We will use a certain notation to denote the input and output files. First we want to run Count.py on all the individual files in PubMed. We will use the percent wildcard system for this. The PUBMED resource is composed of a large set of files, and we want to run a Count.py instance for each file. The wildcard system allows us to generalise a command for all the files that fit a particular pattern. 
 
-The input and output annotations are shown as {IN:filename} and {OUT:filename}. PubRunner makes use of these to figure out what commands need to be rerun when files are updated. This is very useful for reducing the amount of computation when dealing with the regular updates to PubMed. It should be noted that the files in the IN and OUT tags will be in a separate working directory and not the directory where the code resides. The Count.py script takes in a text file (containing PubMed abstracts) and outputs a text file (containing the count). To execute it against all files in the PUBMED directory (which is a symlink of the PUBMED resource), you can use the input: {IN:PUBMED/\*}. When matched with a output of {OUT:counts/\*.txt}, the wildcards are filled in for both and all files in the PUBMED directory are processed. So the Count.py command is included in the pubrunner.yml file as below.
+The input and output annotations are shown as {IN:filename} and {OUT:filename}. PubRunner makes use of these to figure out what commands need to be rerun when files are updated. This is very useful for reducing the amount of computation when dealing with the regular updates to PubMed. It should be noted that the files in the IN and OUT tags will be in a separate working directory and not the directory where the code resides. The Count.py script takes in a text file (containing PubMed abstracts) and outputs a text file (containing the count). To execute it against all files in the PUBMED directory (which is a symlink of the PUBMED resource), you can use the input: {IN:PUBMED/\%}. When matched with a output of {OUT:counts/\%.txt}, the wildcards are filled in for both and all files in the PUBMED directory are processed. So the Count.py command is included in the pubrunner.yml file as below.
 
 .. code-block:: yaml
 
    run:
-      - python Count.py --inFile {IN:PUBMED/*} --outFile {OUT:counts/*.txt}
+      - python Count.py --inFile {IN:PUBMED/%} --outFile {OUT:counts/%.txt}
 
 We then want to execute the Sum.py file on the counts directory. Using the same IN and OUT annotation (but without the wildcards), we can add it as following:
 
 .. code-block:: yaml
 
    run:
-      - python Count.py --inFile {IN:PUBMED/*} --outFile {OUT:counts/*.txt}
+      - python Count.py --inFile {IN:PUBMED/%} --outFile {OUT:counts/%.txt}
       - python Sum.py --inDir {IN:counts} --outFile {OUT:textminingcount.txt}
 
 Output files
