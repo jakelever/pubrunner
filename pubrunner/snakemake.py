@@ -18,7 +18,7 @@ def launchSnakemake(snakeFilePath,useCluster=True,parameters={}):
 		if "drmaa" in clusterSettings and clusterSettings["drmaa"] == True:
 			clusterFlags += ' --drmaa'
 		elif "options" in clusterSettings:
-			clusterFlags = "--cluster '%s'" % clusterSettings["options"]
+			clusterFlags += " --cluster '%s'" % clusterSettings["options"]
 		else:
 			raise RuntimeError("Cluster must either have drmaa = true or provide options (e.g. using qsub)")
 
