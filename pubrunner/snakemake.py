@@ -17,6 +17,8 @@ def launchSnakemake(snakeFilePath,useCluster=True,parameters={}):
 
 		if "drmaa" in clusterSettings and clusterSettings["drmaa"] == True:
 			clusterFlags += ' --drmaa'
+		elif "drmaa" in clusterSettings:
+			clusterFlags += " --drmaa ' %s'" % clusterSettings["drmaa"]
 		elif "options" in clusterSettings:
 			clusterFlags += " --cluster '%s'" % clusterSettings["options"]
 		else:
