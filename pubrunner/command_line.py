@@ -20,6 +20,7 @@ def main():
 	parser.add_argument('--defaultsettings',action='store_true',help='Use default .pubrunner.settings.xml. Ignore ~/.pubrunner.settings.yml if it exists.')
 	parser.add_argument('--ignorecluster',action='store_true',help='Ignore any cluster settings and run everything locally')
 	parser.add_argument('--clean',action='store_true',help='Remove the existing working directory')
+	parser.add_argument('--nogetresource',action='store_true',help='Do not fetch resources before executing a project. Will fail if old versions of resources do not already exists.')
 	parser.add_argument('--test',action='store_true',help='Run the test functionality instead of the full run')
 	parser.add_argument('--getResource',required=False,type=str,help='Fetch a specific resource (instead of doing a normal PubRunner run). This is really only needed for debugging and understanding resources.')
 
@@ -54,14 +55,14 @@ def main():
 		if args.clean:
 			pubrunner.cleanWorkingDirectory(args.codebase,args.test)
 		else:
-			pubrunner.pubrun(args.codebase,args.test)
+			pubrunner.pubrun(args.codebase,args.test,(not args.nogetresource))
 	elif args.codebase.startswith('https://github.com/'):
 		tempDir = ''
 		try:
 			print("Cloning Github repo")
 			tempDir = cloneGithubRepoToTempDir(args.codebase)
 			if args.clean:
-				pubrunner.cleanWorkingDirectory(tempDir,args.test)
+				pubrunner.cleanWorkingDirectory(tempDir,args.test,(not args.nogetresource))
 			else:
 				pubrunner.pubrun(tempDir,args.test)
 			shutil.rmtree(tempDir)

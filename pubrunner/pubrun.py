@@ -161,7 +161,7 @@ def cleanup():
 	if os.path.isdir('.snakemake'):
 		shutil.rmtree('.snakemake')
 
-def pubrun(directory,doTest):
+def pubrun(directory,doTest,doGetResources):
 	mode = "test" if doTest else "full"
 
 	globalSettings = pubrunner.getGlobalSettings()
@@ -197,9 +197,12 @@ def pubrun(directory,doTest):
 
 	processResourceSettings(toolSettings,mode,workingDirectory)
 
-	print("\nFetching resources")
-	for res in toolSettings["resources"]:
-		pubrunner.getResource(res)
+	if doGetResources:
+		print("\nGetting resources")
+		for res in toolSettings["resources"]:
+			pubrunner.getResource(res)
+	else:
+		print("\nNot getting resources (--nogetresource)")
 
 	pmidsFromPMCFile = None
 	needPMIDsFromPMC = any( hashesInfo['removePMCOADuplicates'] for hashesInfo in toolSettings["pubmed_hashes"] )
