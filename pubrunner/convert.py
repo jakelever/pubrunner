@@ -159,6 +159,26 @@ def processMedlineFile(pubmedFile):
 				if regexSearch:
 					pubYear = regexSearch.group()
 
+
+			# Extract the authors
+			print(pmid)
+			authorElems = elem.findall('./Article/AuthorList/Author')
+			authors = []
+			for authorElem in authorElems:
+				forename = authorElem.find('./ForeName')
+				lastname = authorElem.find('./LastName')
+				collectivename = authorElem.find('./CollectiveName')
+
+				print(pmid,forename,lastname,collectivename)
+				if not forename is None and not lastname is None:
+					name = "%s %s" % (forename.text, lastname.text)
+				elif not collectivename is None:
+					name = collectivename.text
+				else:
+					raise RuntimeError("Unable to find authors in Pubmed citation (PMID=%s)" % pmid)
+
+				authors.append(name)
+
 			# Extract the title of paper
 			title = elem.findall('./Article/ArticleTitle')
 			titleText = extractTextFromElemList(title)
@@ -184,6 +204,7 @@ def processMedlineFile(pubmedFile):
 			document["abstract"] = abstractText
 			document["journal"] = journalTitle
 			document["journalISO"] = journalISOTitle
+			document["authors"] = authors
 
 			yield document
 		
@@ -316,6 +337,7 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 			biocDoc.infons['year'] = pmDoc["pubYear"]
 			biocDoc.infons['journal'] = pmDoc["journal"]
 			biocDoc.infons['journalISO'] = pmDoc["journalISO"]
+			biocDoc.infons['authors'] = ",".join(pmDoc["authors"])
 	
 			offset = 0
 			for section in ["title","abstract"]:
