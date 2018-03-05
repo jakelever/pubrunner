@@ -109,6 +109,12 @@ def extractTextFromElemList(elemList):
 	return mergedList
 
 def getMetaInfoForPMCArticle(articleElem):
+	monthMapping = {}
+	for i,m in enumerate(calendar.month_name):
+		monthMapping[m] = i
+	for i,m in enumerate(calendar.month_abbr):
+		monthMapping[m] = i
+
 	# Attempt to extract the PubMed ID, PubMed Central IDs and DOIs
 	pmidText = ''
 	pmcidText = ''
@@ -124,15 +130,28 @@ def getMetaInfoForPMCArticle(articleElem):
 			
 	# Attempt to get the publication date
 	pubdates = articleElem.findall('./front/article-meta/pub-date') + articleElem.findall('./front-stub/pub-date')
-	pubYear,pubMonth,pubDay = "","",""
+	pubYear,pubMonth,pubDay = None,None,None
 	if len(pubdates) >= 1:
-		pubYear = pubdates[0].find("year").text.strip().replace('\n',' ')
-		pubMonth = pubdates[0].find("month").text.strip().replace('\n',' ')
-		pubDay = pubdates[0].find("day").text.strip().replace('\n',' ')
-			
-	return pmidText,pmcidText,doiText,pubYear
+		pubYear_Field = pubdates[0].find("./year")
+		if not pubYear_Field is None:
+			pubYear = pubYear_Field.text.strip().replace('\n',' ')
+		pubSeason_Field = pubdates[0].find("./season")
+		if not pubSeason_Field is None:
+			pubSeason = pubSeason_Field.text.strip().replace('\n',' ')
+			monthSearch = [ c for c in (list(calendar.month_name) + list(calendar.month_abbr)) if c != '' and c in pubSeason ]
+			if len(monthSearch) > 0:
+				pubMonth = monthMapping[monthSearch[0]]
+		pubMonth_Field = pubdates[0].find("./month")
+		if not pubMonth_Field is None:
+			pubMonth = pubMonth_Field.text.strip().replace('\n',' ')
+		pubDay_Field = pubdates[0].find("./day")
+		if not pubDay_Field is None:
+			pubDay = pubDay_Field.text.strip().replace('\n',' ')
 
-def processMedlineFile(pubmedFile):
+			
+	return pmidText,pmcidText,doiText,pubYear,pubMonth,pubDay
+
+def getJournalDateForMedlineFile(elem,pmid):
 	yearRegex = re.compile(r'(18|19|20)\d\d')
 
 	monthMapping = {}
@@ -141,65 +160,94 @@ def processMedlineFile(pubmedFile):
 	for i,m in enumerate(calendar.month_abbr):
 		monthMapping[m] = i
 
+	# Try to extract the publication date
+	pubDateField = elem.find('./MedlineCitation/Article/Journal/JournalIssue/PubDate')
+	medlineDateField = elem.find('./MedlineCitation/Article/Journal/JournalIssue/PubDate/MedlineDate')
+
+	assert not pubDateField is None, "Couldn't find PubDate field for PMID=%s" % pmid
+
+	medlineDateField = pubDateField.find('./MedlineDate')
+	pubDateField_Year = pubDateField.find('./Year')
+	pubDateField_Month = pubDateField.find('./Month')
+	pubDateField_Day = pubDateField.find('./Day')
+
+	pubYear,pubMonth,pubDay = None,None,None
+	if not medlineDateField is None:
+		regexSearch = re.search(yearRegex,medlineDateField.text)
+		if regexSearch:
+			pubYear = regexSearch.group()
+		monthSearch = [ c for c in (list(calendar.month_name) + list(calendar.month_abbr)) if c != '' and c in medlineDateField.text ]
+		if len(monthSearch) > 0:
+			pubMonth = monthSearch[0]
+	else:
+		if not pubDateField_Year is None:
+			pubYear = pubDateField_Year.text
+		if not pubDateField_Month is None:
+			pubMonth = pubDateField_Month.text
+		if not pubDateField_Day is None:
+			pubDay = pubDateField_Day.text
+
+	if not pubYear is None:
+		pubYear = int(pubYear)
+		assert pubYear > 1700 and pubYear < 2100, 'Error extracting publication year for PMID=%s' % pmid
+
+	if not pubMonth is None:
+		if pubMonth in monthMapping:
+			pubMonth = monthMapping[pubMonth]
+		pubMonth = int(pubMonth)
+	if not pubDay is None:
+		pubDay = int(pubDay)
+
+	return pubYear,pubMonth,pubDay
+
+def getPubmedEntryDate(elem,pmid):
+	pubDateFields = elem.findall('./PubmedData/History/PubMedPubDate')
+	allDates = {}
+	for pubDateField in pubDateFields:
+		assert 'PubStatus' in pubDateField.attrib
+		#if 'PubStatus' in pubDateField.attrib and pubDateField.attrib['PubStatus'] == "pubmed":
+		pubDateField_Year = pubDateField.find('./Year')
+		pubDateField_Month = pubDateField.find('./Month')
+		pubDateField_Day = pubDateField.find('./Day')
+		pubYear = int(pubDateField_Year.text)
+		pubMonth = int(pubDateField_Month.text)
+		pubDay = int(pubDateField_Day.text)
+
+		dateType = pubDateField.attrib['PubStatus']
+		if pubYear > 1700 and pubYear < 2100:
+			allDates[dateType] = (pubYear,pubMonth,pubDay)
+
+	if len(allDates) == 0:
+		return None,None,None
+
+	if 'pubmed' in allDates:
+		pubYear,pubMonth,pubDay = allDates['pubmed']
+	elif 'entrez' in allDates:
+		pubYear,pubMonth,pubDay = allDates['entrez']
+	elif 'medline' in allDates:
+		pubYear,pubMonth,pubDay = allDates['medline']
+	else:
+		pubYear,pubMonth,pubDay = list(allDates.values())[0]
+
+	return pubYear,pubMonth,pubDay
+
+def processMedlineFile(pubmedFile):
 	for event, elem in etree.iterparse(pubmedFile, events=('start', 'end', 'start-ns', 'end-ns')):
 		if (event=='end' and elem.tag=='PubmedArticle'): #MedlineCitation'):
 			# Try to extract the pmidID
 			pmidField = elem.find('./MedlineCitation/PMID')
 			assert not pmidField is None
-			#pmid = ''
-			#if not pmidField is None:
 			pmid = pmidField.text
 
-			pubDateFields = elem.findall('./PubmedData/History/PubMedPubDate')
-			for pubDateField in pubDateFields:
-				if 'PubStatus' in field.attrib and field.attrib['PubStatus'] == "pubmed":
-					pubDateField_Year = pubDateField.find('./Year')
-					pubDateField_Month = pubDateField.find('./Month')
-					pubDateField_Day = pubDateField.find('./Day')
-					pubYear = int(pubDateField_Year.text)
-					pubMonth = int(pubDateField_Month.text)
-					pubDay = int(pubDateField_Day.text)
+			journalYear,journalMonth,journalDay = getJournalDateForMedlineFile(elem,pmid)
+			entryYear,entryMonth,entryDay = getPubmedEntryDate(elem,pmid)
 
-			# Try to extract the publication date
-			pubDateField = elem.find('./MedlineCitation/Article/Journal/JournalIssue/PubDate')
-			medlineDateField = elem.find('./MedlineCitation/Article/Journal/JournalIssue/PubDate/MedlineDate')
-
-			assert not pubDateField is None, "Couldn't find PubDate field for PMID=%s" % pmid
-
-			medlineDateField = pubDateField.find('./MedlineDate')
-			pubDateField_Year = pubDateField.find('./Year')
-			pubDateField_Month = pubDateField.find('./Month')
-			pubDateField_Day = pubDateField.find('./Day')
-
-			pubYear,pubMonth,pubDay = None,None,None
-			if not medlineDateField is None:
-				regexSearch = re.search(yearRegex,medlineDateField.text)
-				if regexSearch:
-					pubYear = regexSearch.group()
-				monthSearch = [ c for c in (list(calendar.month_name) + list(calendar.month_abbr)) if c != '' and c in medlineDateField.text ]
-				if len(monthSearch) > 0:
-					pubMonth = monthSearch[0]
+			jComparison = tuple ( 9999 if d is None else d for d in [ journalYear,journalMonth,journalDay ] )
+			eComparison = tuple ( 9999 if d is None else d for d in [ entryYear,entryMonth,entryDay ] )
+			if jComparison < eComparison: # The PubMed entry has been delayed for some reason so let's try the journal data
+				pubYear,pubMonth,pubDay = journalYear,journalMonth,journalDay
 			else:
-				if not pubDateField_Year is None:
-					pubYear = pubDateField_Year.text
-				if not pubDateField_Month is None:
-					pubMonth = pubDateField_Month.text
-				if not pubDateField_Day is None:
-					pubDay = pubDateField_Day.text
-
-			if not pubMonth is None:
-				if pubMonth in monthMapping:
-					pubMonth = monthMapping[pubMonth]
-				pubMonth = int(pubMonth)
-			if not pubDay is None:
-				pubDay = int(pubDay)
-			#print(pmid)
-			assert not pubYear is None, 'Error extracting publication year for PMID=%s' % pmid
-			pubYear = int(pubYear)
-			assert pubYear > 1700 and pubYear < 2100, 'Error extracting publication year for PMID=%s' % pmid
-
-			print(pmid, pubYear, pubMonth, pubDay)
-
+				pubYear,pubMonth,pubDay = entryYear,entryMonth,entryDay
 
 			# Extract the authors
 			authorElems = elem.findall('./MedlineCitation/Article/AuthorList/Author')
@@ -243,6 +291,8 @@ def processMedlineFile(pubmedFile):
 			document = {}
 			document["pmid"] = pmid
 			document["pubYear"] = pubYear
+			document["pubMonth"] = pubMonth
+			document["pubDay"] = pubDay
 			document["title"] = titleText
 			document["abstract"] = abstractText
 			document["journal"] = journalTitle
@@ -278,7 +328,7 @@ def processPMCFile(pmcFile):
 						subPmidText,subPmcidText,subDoiText,subPubYear,subPubMonth,subPubDay = getMetaInfoForPMCArticle(articleElem)
 						if subPmidText=='' and subPmcidText == '' and subDoiText == '':
 							subPmidText,subPmcidText,subDoiText = pmidText,pmcidText,doiText
-						if subPubYear == '':
+						if subPubYear == None:
 							subPubYear = pubYear
 							subPubMonth = pubMonth
 							subPubDay = pubDay
@@ -380,9 +430,11 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 			biocDoc.infons['title'] = " ".join(pmDoc["title"])
 			biocDoc.infons['pmid'] = pmDoc["pmid"]
 			biocDoc.infons['year'] = pmDoc["pubYear"]
+			biocDoc.infons['month'] = pmDoc["pubMonth"]
+			biocDoc.infons['day'] = pmDoc["pubDay"]
 			biocDoc.infons['journal'] = pmDoc["journal"]
 			biocDoc.infons['journalISO'] = pmDoc["journalISO"]
-			biocDoc.infons['authors'] = ",".join(pmDoc["authors"])
+			biocDoc.infons['authors'] = ", ".join(pmDoc["authors"])
 	
 			offset = 0
 			for section in ["title","abstract"]:
