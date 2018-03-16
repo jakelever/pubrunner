@@ -64,7 +64,7 @@ def main():
 			if args.clean:
 				pubrunner.cleanWorkingDirectory(tempDir,args.test,(not args.nogetresource))
 			else:
-				pubrunner.pubrun(tempDir,args.test)
+				pubrunner.pubrun(tempDir,args.test,(not args.nogetresource))
 			shutil.rmtree(tempDir)
 		except:
 			if os.path.isdir(tempDir):
