@@ -9,6 +9,8 @@ def md5(text):
 		return ''
 	if isinstance(text,list):
 		text = "\n".join(text)
+	if not isinstance(text,str):
+		text = str(text)
 
 	m = hashlib.md5()
 	m.update(text.encode('utf8'))
