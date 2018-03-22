@@ -22,16 +22,16 @@ def main():
 	parser.add_argument('--clean',action='store_true',help='Remove the existing working directory')
 	parser.add_argument('--nogetresource',action='store_true',help='Do not fetch resources before executing a project. Will fail if old versions of resources do not already exists.')
 	parser.add_argument('--test',action='store_true',help='Run the test functionality instead of the full run')
-	parser.add_argument('--getResource',required=False,type=str,help='Fetch a specific resource (instead of doing a normal PubRunner run). This is really only needed for debugging and understanding resources.')
+	parser.add_argument('--getresource',required=False,type=str,help='Fetch a specific resource (instead of doing a normal PubRunner run). This is really only needed for debugging and understanding resources.')
 
 	args = parser.parse_args()
 
 	print(pyfiglet.figlet_format('PubRunner', font='cyberlarge', justify='center'))
 	print()
 
-	if args.getResource:
-		location = pubrunner.getResource(args.getResource)
-		print("Downloaded latest version of resource '%s' to location:" % args.getResource)
+	if args.getresource:
+		location = pubrunner.getResource(args.getresource)
+		print("Downloaded latest version of resource '%s' to location:" % args.getresource)
 		print(location)
 		print("")
 		print("Exiting without doing PubRun")
