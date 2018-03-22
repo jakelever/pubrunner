@@ -422,6 +422,30 @@ def writeMarcXMLRecordToBiocFile(record,biocWriter):
 
 	biocWriter.writedocument(biocDoc)
 
+def uimaxmi2bioc(xmiFilename, biocFilename):
+	tree = etree.parse(xmiFilename)
+	root = tree.getroot()
+
+	metadataNode = root.find('{http:///de/tudarmstadt/ukp/dkpro/core/api/metadata/type.ecore}DocumentMetaData')
+	documentTitle = metadataNode.attrib['documentTitle']
+
+	contentNode = root.find('{http:///uima/cas.ecore}Sofa')
+	content = contentNode.attrib['sofaString']
+
+	with bioc.iterwrite(biocFilename) as writer:
+		biocDoc = bioc.BioCDocument()
+		biocDoc.id = None
+		biocDoc.infons['title'] = documentTitle
+
+		passage = bioc.BioCPassage()
+		passage.infons['section'] = 'article'
+		passage.text = content
+		passage.offset = 0
+		biocDoc.add_passage(passage)
+
+		writer.writedocument(biocDoc)
+
+
 def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 	with bioc.iterwrite(biocFilename) as writer:
 		for pmDoc in processMedlineFile(pubmedxmlFilename):
@@ -498,7 +522,7 @@ def marcxml2bioc(marcxmlFilename,biocFilename):
 
 		pymarc.map_xml(marcxml2bioc_helper,inF)
 
-acceptedInFormats = ['bioc','pubmedxml','marcxml','pmcxml']
+acceptedInFormats = ['bioc','pubmedxml','marcxml','pmcxml','uimaxmi']
 acceptedOutFormats = ['bioc','txt']
 def convertFiles(inFiles,inFormat,outFile,outFormat,idFilterfiles=None):
 	outBiocHandle,outTxtHandle = None,None
@@ -528,6 +552,8 @@ def convertFiles(inFiles,inFormat,outFile,outFormat,idFilterfiles=None):
 				marcxml2bioc(inFile,temp.name)
 			elif inFormat == 'pmcxml':
 				pmcxml2bioc(inFile,temp.name)
+			elif inFormat == 'uimaxmi':
+				uimaxmi2bioc(inFile,temp.name)
 			else:
 				raise RuntimeError("Unknown input format: %s" % inFormat)
 
