@@ -46,7 +46,7 @@ def main():
 		print(location)
 		print("")
 		print("Exiting without doing PubRun")
-		sys.exit(0)
+		return
 	
 	if not args.codebase:
 		print("ERROR: codebase must be provided (if not downloading individual resources)")
