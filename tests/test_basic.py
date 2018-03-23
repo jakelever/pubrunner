@@ -3,11 +3,14 @@ import pubrunner
 import pubrunner.command_line
 
 def test_countwords():
-	#pubrunner.pubrun('examples/CountWords/',True,True)
-	sys.argv = ['pubrunner', '--defaultsettings', '--test','examples/CountWords/']
+	parentDir = os.path.dirname(os.path.abspath(__file__))
+	projectPath = os.path.join(parentDir,'examples','CountWords')
+	sys.argv = ['pubrunner', '--defaultsettings', '--test',projectPath]
 	pubrunner.command_line.main()
 
 def test_textminingcounter():
-	#pubrunner.pubrun('examples/CountWords/',True,True)
-	sys.argv = ['pubrunner', '--defaultsettings', '--test','examples/TextMiningCounter/']
+	parentDir = os.path.dirname(os.path.abspath(__file__))
+	projectPath = os.path.join(parentDir,'examples','TextMiningCount')
+	sys.argv = ['pubrunner', '--defaultsettings', '--test',projectPath]
 	pubrunner.command_line.main()
+
