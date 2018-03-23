@@ -7,8 +7,8 @@ hostoutput=$PWD/output
 containerinput=/input
 containeroutput=/output
 
-inputFormat=uimaxmi
-outputFormat=bioc
+inputformat=uimaxmi
+outputformat=bioc
 
 mkdir -p $hostinput
 mkdir -p $hostoutput
@@ -20,4 +20,4 @@ rm typesystem.xml
 rm XMIsamplesNew.zip
 cd -
 
-docker run -v $hostinput:$containerinput -v $hostoutput:$containeroutput jakelever/pubrunner $command --input $containerinput --output $containeroutput --param:inputFormat $inputFormat --param:outputFormat $outputFormat
+docker run -v $hostinput:$containerinput -v $hostoutput:$containeroutput jakelever/pubrunner $command --input $containerinput --output $containeroutput --param:inputformat $inputformat --param:outputformat $outputformat
