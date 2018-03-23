@@ -83,6 +83,6 @@ def main():
 	elif os.path.isfile(args.codebase):
 		raise RuntimeError("Not implemented")
 	else:
-		raise RuntimeError("Not sure what to do with codebase: %s. Doesn't appear to be a directory, Github repo or archive")
+		raise RuntimeError("Not sure what to do with codebase: %s. Doesn't appear to be a directory, Github repo or archive" % args.codebase)
 
 
