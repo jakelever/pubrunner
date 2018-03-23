@@ -53,7 +53,10 @@ def predictOutputFiles(inputVariables,outputVariables):
 
 	inputContainsPercentWildcards = isinstance(allWildcardValues,set)
 	if inputContainsPercentWildcards:
-		assert len(allWildcardValues) > 0, "Percent wildcards on input unable to match to any input files"
+		#assert len(allWildcardValues) > 0, "Percent wildcards on input unable to match to any input files"
+		if len(allWildcardValues) == 0:
+			return []
+
 		allWildcardValues = sorted(list(allWildcardValues))
 
 	expectedOutputFiles = []
@@ -134,7 +137,7 @@ def processCommand(dataDir,command):
 		for tr in toRemove:
 			del outputVariables[tr]
 
-	return newCommand,inputVariables,outputVariables
+	return inputPercentWildcard,outputPercentWildcard,newCommand,inputVariables,outputVariables
 
 def expandAsteriskWildcards(variables):
 	newVariables = {}
@@ -177,7 +180,7 @@ dataDir = os.environ.get("DATADIR")
 if not os.path.isdir(dataDir):
 	os.makedirs(dataDir)
 
-command,inputVariables,outputVariables = processCommand(dataDir,unprocessedCommand)
+inputPercentWildcard,outputPercentWildcard,command,inputVariables,outputVariables = processCommand(dataDir,unprocessedCommand)
 
 checkVariables(inputVariables,outputVariables)
 
@@ -187,10 +190,10 @@ expectedOutputFiles = predictOutputFiles(inputVariables,outputVariables)
 
 command = addTouchToCommands(command,outputVariables)
 
-#print("command:",command)
-#print("inputVariables",inputVariables)
-#print("outputVariables",outputVariables)
-#print("expectedOutputFiles",expectedOutputFiles)
+print("command:",command)
+print("inputVariables",inputVariables)
+print("outputVariables",outputVariables)
+print("expectedOutputFiles",expectedOutputFiles)
 
 # If we can determine the output files, we will create a dependency on them to force the main rule to run
 if len(expectedOutputFiles) > 0:
@@ -204,7 +207,7 @@ if len(expectedOutputFiles) > 0:
 		shell: command
 	
 # If we can't determine the output files, we will not have a main dependency rule and exclude the output file list from this rule which will then force snakemake to run this
-else:
+elif inputPercentWildcard == False and outputPercentWildcard == False:
 	rule Main_Command_But_Unknown_Output_Files:
 		input: **inputVariables
 		output:	**outputVariables

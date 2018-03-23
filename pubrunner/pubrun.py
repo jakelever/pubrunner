@@ -161,7 +161,7 @@ def cleanup():
 	if os.path.isdir('.snakemake'):
 		shutil.rmtree('.snakemake')
 
-def pubrun(directory,doTest,doGetResources):
+def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_format=None,outputdir=None):
 	mode = "test" if doTest else "full"
 
 	globalSettings = pubrunner.getGlobalSettings()
@@ -197,7 +197,30 @@ def pubrun(directory,doTest,doGetResources):
 
 	processResourceSettings(toolSettings,mode,workingDirectory)
 
-	if doGetResources:
+	if not forceresource_dir is None:
+		assert os.path.isdir(forceresource_dir), "forceresource_dir must be a directory. %s is not" % forceresource_dir
+		if len(toolSettings["resources"]) > 0:
+			firstResource = toolSettings["resources"][0]
+			print("\nUsing provided resource location for first resource %s" % toolSettings["resources"][0])
+
+			singleConversion = {}
+			singleConversion["inDir"] = forceresource_dir
+			singleConversion["inFormat"] = forceresource_format
+			singleConversion["outDir"] = toolSettings["conversions"][0]["outDir"]
+			singleConversion["outFormat"] = toolSettings["conversions"][0]["outFormat"]
+			singleConversion["chunkSize"] = 1
+			for conversion in toolSettings["conversions"][1:]:
+				# Remove the symlink to the normal resource and create an empty directory instead (and remove the conversion for this resource)
+				os.unlink(conversion["inDir"])
+				shutil.rmtree(conversion["outDir"])
+				os.makedirs(conversion["outDir"])
+			if len(toolSettings["resources"]) > 1:
+				print("Using empty directories for remaining resources: %s" % ",".join(toolSettings["resources"][1:]))
+			toolSettings["conversions"] = [singleConversion]
+			toolSettings["pubmed_hashes"] = []
+		#print(json.dumps(toolSettings,indent=2))
+		#sys.exit(0)
+	elif doGetResources:
 		print("\nGetting resources")
 		for res in toolSettings["resources"]:
 			pubrunner.getResource(res)
@@ -264,6 +287,15 @@ def pubrun(directory,doTest,doGetResources):
 		for f in outputLocList:
 			print('  %s' % f)
 		print()
+
+		if not outputdir is None:
+			print("\nCopying results to output directory: %s" % outputdir)
+			if not os.path.isdir(outputdir):
+				os.makedirs(outputdir)
+			for o in outputList:
+				fromFile = os.path.join(workingDirectory,o)
+				toFile = os.path.join(outputdir,o)
+				shutil.copy(fromFile,toFile)
 
 		if mode != 'test':
 
