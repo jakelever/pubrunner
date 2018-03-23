@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-command=./pubrunner/openminted.py
+command=./pubrunner/openminted/convert.py
 hostinput=$PWD/input
 hostoutput=$PWD/output
 containerinput=/input
