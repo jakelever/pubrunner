@@ -17,8 +17,9 @@ if __name__ == '__main__':
 	inputFormat = args.__dict__['param:inputformat']
 	outputFormat = args.__dict__['param:outputformat']
 
-	for f in os.listdir(args.input):
-		inFiles = [os.path.join(args.input,f)]
-		outFile = os.path.join(args.output,f)
-		pubrunner.convertFiles(inFiles,inputFormat,outFile,outputFormat)
+	for root, dirnames, filenames in os.walk(args.input):
+		for filename in filenames:
+			inFiles = [os.path.join(root,filename)]
+			outFile = os.path.join(args.output,filename)
+			pubrunner.convertFiles(inFiles,inputFormat,outFile,outputFormat)
 
