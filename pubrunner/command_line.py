@@ -32,6 +32,9 @@ def main():
 	print(pyfiglet.figlet_format('PubRunner', font='cyberlarge', justify='center'))
 	print()
 
+	if args.defaultsettings:
+		globalSettings = pubrunner.getGlobalSettings(useDefault=True)
+
 	if args.forceresource_dir:
 		args.forceresource_dir = os.path.abspath(args.forceresource_dir)
 	if args.outputdir:
@@ -50,9 +53,6 @@ def main():
 		print()
 		parser.print_help()
 		sys.exit(1)
-
-	if args.defaultsettings:
-		globalSettings = pubrunner.getGlobalSettings(useDefault=True)
 
 	if args.ignorecluster:
 		globalSettings = pubrunner.getGlobalSettings()
