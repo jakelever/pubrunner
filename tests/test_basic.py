@@ -7,3 +7,7 @@ def test_countwords():
 	sys.argv = ['pubrunner', '--defaultsettings', '--test','examples/CountWords/']
 	pubrunner.command_line.main()
 
+def test_textminingcounter():
+	#pubrunner.pubrun('examples/CountWords/',True,True)
+	sys.argv = ['pubrunner', '--defaultsettings', '--test','examples/TextMiningCounter/']
+	pubrunner.command_line.main()
