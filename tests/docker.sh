@@ -30,4 +30,9 @@ githubrepo=https://github.com/jakelever/Ab3P/
 echo "Running run component"
 docker run -v $hostinput:$containerinput -v $hostoutput:$containeroutput jakelever/pubrunner $command --input $containerinput --output $containeroutput --param:githubrepo $githubrepo
 
+command=./pubrunner/openminted/download.py
+resource=PMCOA_TWOJOURNALS
+
+echo "Running download component"
+docker run -v $hostinput:$containerinput -v $hostoutput:$containeroutput jakelever/pubrunner $command --output $containeroutput --param:resource $resource
 
