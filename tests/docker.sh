@@ -20,4 +20,14 @@ rm typesystem.xml
 rm XMIsamplesNew.zip
 cd -
 
+echo "Running conversion component"
 docker run -v $hostinput:$containerinput -v $hostoutput:$containeroutput jakelever/pubrunner $command --input $containerinput --output $containeroutput --param:inputformat $inputformat --param:outputformat $outputformat
+
+
+command=./pubrunner/openminted/run.py
+githubrepo=https://github.com/jakelever/Ab3P/
+
+echo "Running run component"
+docker run -v $hostinput:$containerinput -v $hostoutput:$containeroutput jakelever/pubrunner $command --input $containerinput --output $containeroutput --param:githubrepo $githubrepo
+
+
