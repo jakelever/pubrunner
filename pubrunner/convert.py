@@ -535,6 +535,7 @@ def convertFiles(inFiles,inFormat,outFile,outFormat,idFilterfiles=None):
 	if idFilterfiles is None:
 		idFilterfiles = [ None for _ in inFiles ]
 
+	print("Converting %d files to %s" % (len(inFiles),outFile))
 	for inFile,idFilterfile in zip(inFiles,idFilterfiles):
 		if idFilterfile is None:
 			idFilter = None
@@ -542,7 +543,7 @@ def convertFiles(inFiles,inFormat,outFile,outFormat,idFilterfiles=None):
 			with open(idFilterfile) as f:
 				idFilter = set([ line.strip() for line in f ])
 
-		print("Starting conversion of %s." % inFile)
+
 		with tempfile.NamedTemporaryFile() as temp:
 			if inFormat == 'bioc':
 				shutil.copyfile(inFile,temp.name)
@@ -563,7 +564,7 @@ def convertFiles(inFiles,inFormat,outFile,outFormat,idFilterfiles=None):
 				bioc2txt(temp.name,outTxtHandle,idFilter)
 			else:
 				raise RuntimeError("Unknown output format: %s" % outFormat)
-	print("Output to %s complete." % outFile)
+	print("Output to %s complete" % outFile)
 
 def main():
 	parser = argparse.ArgumentParser(description='Tool to convert corpus between different formats')

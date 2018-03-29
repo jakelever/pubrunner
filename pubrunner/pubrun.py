@@ -10,6 +10,7 @@ import datetime
 import csv
 import atexit
 import codecs
+from collections import defaultdict
 from Bio import Entrez
 
 def extractVariables(command):
@@ -182,28 +183,125 @@ def cleanWorkingDirectory(directory,doTest,execute=False):
 		print("No working directory to remove for tool %s" % toolName)
 		print("Expected directory: %s" % workingDirectory)
 		
-def downloadPMIDSFromPMC(workingDirectory):
+def downloadPMCOAMetadata(workingDirectory):
 	url = 'ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_file_list.csv'
 	localFile = os.path.join(workingDirectory,'oa_file_list.csv')
 	pubrunner.download(url,localFile)
 
 	pmids = set()
+	pmcidsToLastUpdate = defaultdict(lambda : "")
 	with open(localFile) as csvfile:
 		reader = csv.DictReader(csvfile)
 		for row in reader:
 			pmid = row['PMID']
+			pmcid = row['Accession ID']
+			lastupdated = row['Last Updated (YYYY-MM-DD HH:MM:SS)']
+			if pmcid != '':
+				pmcidsToLastUpdate[pmcid] = lastupdated
 			if pmid != '':
 				pmids.add(int(pmid))
 
 	os.unlink(localFile)
 
-	return pmids
+	return pmids,pmcidsToLastUpdate
 
 def cleanup():
 	if os.path.isdir('.pubrunner_lock'):
 		shutil.rmtree('.pubrunner_lock')
 	if os.path.isdir('.snakemake'):
 		shutil.rmtree('.snakemake')
+
+# https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
+def chunks(l, n):
+	"""Yield successive n-sized chunks from l."""
+	for i in range(0, len(l), n):
+		yield l[i:i + n]
+
+def findFiles(dirName):
+	allFiles = []
+	for root, dirs, files in os.walk(dirName):
+		allFiles += [ os.path.join(root,f) for f in files ]
+	
+	# We're going to extract the last set of digits from each filename and sort by that
+	nums = [ re.findall('[0-9]+',f) for f in allFiles ]
+	nums = [ 0 if num == [] else int(num[-1]) for num in nums ]
+	sortedByNum = sorted(list(zip(nums,allFiles)))
+	sortedFilepaths = [ filepath for num,filepath in sortedByNum ]
+	
+	return sortedFilepaths
+
+class OutputFileNamer:
+	def __init__(self,directory,fileFormat):
+		self.directory = directory
+		self.fileFormat = fileFormat
+		self.i = 0
+
+	def next(self):
+		for _ in range(10000):
+			outputFile = os.path.join(self.directory,self.fileFormat % self.i)
+			self.i += 1
+			if not os.path.isfile(outputFile):
+				return outputFile
+		raise RuntimeError("Unable to create an output file that doesn't already exist")
+
+def getPMCIDFromFilename(filename):
+	pmcidSearch = re.search('PMC\d+',filename)
+	if pmcidSearch:
+		return pmcidSearch.group()
+	else:
+		return None
+
+def assignFilesForConversion(inDir, previousAssignmentFile, outDir, outPattern, maxChunkSize, pmcidsToLastUpdate=None):
+	files = findFiles(inDir)
+
+	if not pmcidsToLastUpdate is None:
+		print("Sorting files by PMC last update metadata")
+		filesWithUpdates = [ (pmcidsToLastUpdate[getPMCIDFromFilename(f)],f) for f in files ]
+		atleastOneUpdate = any (lastupdate != '' for lastupdate,f in filesWithUpdates )
+		assert atleastOneUpdate, "No update dates associated with PMCIDs. Must have been a problem loading the file"
+		filesWithUpdates = sorted(filesWithUpdates)
+		files = [ f for lastupdate,f in filesWithUpdates ]
+
+	assignedChunks = previousAssignmentFile
+
+	# We'll check if any previous input files have disappeared, and set that chunk to dirty (so it is reprocessed)
+	filesSet = set(files)
+	missingFiles = [ f for f in assignedChunks.keys() if not f in filesSet ]
+	dirtyOutputFiles = set( [ assignedChunks[f] for f in missingFiles ] )
+	for f in missingFiles:
+		del assignedChunks[f]
+
+	if len(assignedChunks) > 0:
+		# We're just take the last chunk alphabetically
+		currentChunk = sorted(assignedChunks.values())[-1]
+		currentChunkSize = len( [ f for f in assignedChunks.values() if f == currentChunk ] )
+	else:
+		currentChunk = None
+		currentChunkSize = 0
+
+	outputFileNamer = OutputFileNamer(outDir,outPattern)
+
+	for f in files:
+		if not f in assignedChunks:
+			if currentChunk is None or currentChunkSize >= maxChunkSize:
+				currentChunk = outputFileNamer.next()
+				currentChunkSize = 0
+			
+			assignedChunks[f] = currentChunk
+			dirtyOutputFiles.add(currentChunk)
+			currentChunkSize += 1
+
+	# Remove any dirty files to force them to be recalculated
+	for dirtyOutputFile in dirtyOutputFiles:
+		if os.path.isfile(dirtyOutputFile):
+			os.unlink(dirtyOutputFile)
+			print("Removing:", dirtyOutputFile)
+
+	outputFilesWithChunks = defaultdict(list)
+	for f,outputFile in assignedChunks.items():
+		outputFilesWithChunks[outputFile].append(f)
+
+	return outputFilesWithChunks
 
 def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_format=None,outputdir=None):
 	mode = "test" if doTest else "full"
@@ -277,11 +375,12 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 
 	prepareConversionAndHashingRuns(toolSettings,mode,workingDirectory)
 
-	pmidsFromPMCFile = None
+	pmidsFromPMCFile,pmcidsToLastUpdate = None,None
 	needPMIDsFromPMC = any( hashesInfo['removePMCOADuplicates'] for hashesInfo in toolSettings["pubmed_hashes"] )
-	if needPMIDsFromPMC:
-		print("\nGetting list of PMIDs in Pubmed Central")
-		pmidsFromPMCFile = downloadPMIDSFromPMC(workingDirectory)
+	pmcoaIsAResource = any( resName == 'PMCOA' for resName,_ in resourcesInUse )
+	if needPMIDsFromPMC or pmcoaIsAResource:
+		print("\nGetting Pubmed Central metadata for PMID info and/or file dates")
+		pmidsFromPMCFile,pmcidsToLastUpdate = downloadPMCOAMetadata(workingDirectory)
 
 	directoriesWithHashes = set()
 	if toolSettings["pubmed_hashes"] != []:
@@ -306,8 +405,23 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 		inDir,inFormat = conversionInfo['inDir'],conversionInfo['inFormat']
 		outDir,outFormat = conversionInfo['outDir'],conversionInfo['outFormat']
 		chunkSize = conversionInfo['chunkSize']
-		parameters = {'INDIR':inDir,'INFORMAT':inFormat,'OUTDIR':outDir,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
 
+		chunksFile = outDir + '.json'
+		previousChunks = {}
+		if os.path.isfile(chunksFile):
+			with open(chunksFile,'wb') as f:
+				previousChunks = json.load(f)
+
+		outPattern = os.path.basename(inDir) + ".converted.%08d." + outFormat
+		if  os.path.basename(inDir) == 'PMCOA_UNCONVERTED':
+			newChunks = assignFilesForConversion(inDir, previousChunks, outDir, outPattern, chunkSize, pmcidsToLastUpdate)
+		else:
+			newChunks = assignFilesForConversion(inDir, previousChunks, outDir, outPattern, chunkSize)
+
+		with open(chunksFile,'w') as f:
+			json.dump(newChunks,f,indent=2)
+
+		parameters = {'CHUNKS':chunksFile,'INFORMAT':inFormat,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
 		if inDir in directoriesWithHashes:
 			pmidDirectory = inDir.rstrip('/') + '.pmids'
 			assert os.path.isdir(pmidDirectory), "Cannot find PMIDs directory for resource. Tried: %s" % pmidDirectory
@@ -315,7 +429,6 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 
 		convertSnakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
 		pubrunner.launchSnakemake(convertSnakeFile,parameters=parameters)
-
 
 	runSnakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Run.py')
 	for commandGroup in ["build","run"]:

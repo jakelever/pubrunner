@@ -3,20 +3,20 @@ version: 0.1
 url: https://github.com/jakelever/pubrunner/tree/master/examples/TextMiningCounter
 resources:
    full:
-      - PUBMED:
-         format: txt
+#      - PUBMED:
+#         format: txt
       - PMCOA:
          format: txt
    test:
-      - PUBMED_CUSTOM:
-         pmids: 29590681
-         format: txt
-         rename: PUBMED
+#      - PUBMED_CUSTOM:
+#         pmids: 29590681
+#         format: txt
+#         rename: PUBMED
       - PMCOA_TESTFILE:
          format: txt
          rename: PMCOA
 run:
-   - python Count.py --inFile {IN:PUBMED/%} --outFile {OUT:counts/%.txt}
+#   - python Count.py --inFile {IN:PUBMED/%} --outFile {OUT:counts/%.txt}
    - python Count.py --inFile {IN:PMCOA/%} --outFile {OUT:counts/%.txt}
    - python Sum.py --inDir {IN:counts} --outFile {OUT:textminingcount.txt}
 output: textminingcount.txt
