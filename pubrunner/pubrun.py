@@ -51,7 +51,7 @@ def preprocessResourceSettings(toolSettings):
 			newResources.append(newResource)
 		toolSettings["resources"][resourceGroupName] = newResources
 
-def processResourceSettings(toolSettings,mode,workingDirectory):
+def prepareConversionAndHashingRuns(toolSettings,mode,workingDirectory):
 	newResourceList = []
 	conversions = []
 	resourcesWithHashes = []
@@ -275,7 +275,7 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 	else:
 		print("\nNot getting resources (--nogetresource)")
 
-	processResourceSettings(toolSettings,mode,workingDirectory)
+	prepareConversionAndHashingRuns(toolSettings,mode,workingDirectory)
 
 	pmidsFromPMCFile = None
 	needPMIDsFromPMC = any( hashesInfo['removePMCOADuplicates'] for hashesInfo in toolSettings["pubmed_hashes"] )
