@@ -36,125 +36,124 @@ def eutilsToFile(db,id,filename):
 	with codecs.open(filename,'w','utf-8') as f:
 		xml = handle.read()
 		f.write(xml)
-	
+
+def preprocessResourceSettings(toolSettings):
+	for resourceGroupName in toolSettings["resources"]:
+		newResources = []
+		for resource in toolSettings["resources"][resourceGroupName]:
+			if isinstance(resource,dict):
+				assert len(resource.items()) == 1, "ERROR in pubrunner.yml: A resource (%s) is not being parsed correctly. It is likely that the resource settings (e.g. format) are not indented properly. Try indenting more" % (str(list(resource.keys())[0]))
+				resource,projectSettings = list(resource.items())[0]
+				newResource = ( resource, projectSettings)
+			else:
+				newResource = ( resource, {} )
+
+			newResources.append(newResource)
+		toolSettings["resources"][resourceGroupName] = newResources
+
 def processResourceSettings(toolSettings,mode,workingDirectory):
 	newResourceList = []
-	#preprocessingCommands = []
 	conversions = []
 	resourcesWithHashes = []
 	for resourceGroupName in ["all",mode]:
-		for resName in toolSettings["resources"][resourceGroupName]:
-			if isinstance(resName,dict):
-				assert len(resName.items()) == 1, "ERROR in pubrunner.yml: A resource (%s) is not being parsed correctly. It is likely that the resource settings (e.g. format) are not indented properly. Try indenting more" % (str(list(resName.keys())[0]))
+		for resName,projectSettings in toolSettings["resources"][resourceGroupName]:
+			allowed = ['rename','format','removePMCOADuplicates','usePubmedHashes','pmids','pmcids']
+			for k in projectSettings.keys():
+				assert k in allowed, "Unexpected attribute (%s) for resource %s" % (k,resName)
 
-				# TODO: Rename resSettings and resInfo to be more meaningful
-				resName,resSettings = list(resName.items())[0]
+			nameToUse = resName
+			if "rename" in projectSettings:
+				nameToUse = projectSettings["rename"]
 
-				allowed = ['rename','format','removePMCOADuplicates','usePubmedHashes','pmids','pmcids']
-				for k in resSettings.keys():
-					assert k in allowed, "Unexpected attribute (%s) for resource %s" % (k,resName)
-
-				nameToUse = resName
-				if "rename" in resSettings:
-					nameToUse = resSettings["rename"]
-
-				if resName == 'PUBMED_CUSTOM':
-					#print(resSettings)
-					if "format" in resSettings:
-						dirToCreate = nameToUse + "_UNCONVERTED"
-					else:
-						dirToCreate = nameToUse
-					dirToCreate = os.path.join(workingDirectory,dirToCreate)
-					if os.path.isdir(dirToCreate):
-						shutil.rmtree(dirToCreate)
-					os.makedirs(dirToCreate)
-
-					pmids = str(resSettings['pmids'])
-					for pmid in pmids.split(','):
-						filename = os.path.join(dirToCreate,'%d.xml' % int(pmid))
-						eutilsToFile('pubmed',pmid,filename)
-
-					resInfo = {'format':'pubmedxml','chunkSize':1}
-				elif resName == 'PMCOA_CUSTOM':
-					#print(resSettings)
-					if "format" in resSettings:
-						dirToCreate = nameToUse + "_UNCONVERTED"
-					else:
-						dirToCreate = nameToUse
-					dirToCreate = os.path.join(workingDirectory,dirToCreate)
-					if os.path.isdir(dirToCreate):
-						shutil.rmtree(dirToCreate)
-					os.makedirs(dirToCreate)
-
-					pmcids = str(resSettings['pmcids'])
-					for pmcid in pmcids.split(','):
-						filename = os.path.join(dirToCreate,'%d.nxml' % int(pmcid))
-						eutilsToFile('pmc',pmcid,filename)
-
-					resInfo = {'format':'pmcxml','chunkSize':1}
+			if resName == 'PUBMED_CUSTOM':
+				#print(projectSettings)
+				if "format" in projectSettings:
+					dirToCreate = nameToUse + "_UNCONVERTED"
 				else:
-					resInfo = pubrunner.getResourceInfo(resName)
+					dirToCreate = nameToUse
+				dirToCreate = os.path.join(workingDirectory,dirToCreate)
+				if os.path.isdir(dirToCreate):
+					shutil.rmtree(dirToCreate)
+				os.makedirs(dirToCreate)
 
-				if "format" in resSettings:
-					inDir = nameToUse + "_UNCONVERTED"
-					inFormat = resInfo["format"]
+				pmids = str(projectSettings['pmids'])
+				for pmid in pmids.split(','):
+					filename = os.path.join(dirToCreate,'%d.xml' % int(pmid))
+					eutilsToFile('pubmed',pmid,filename)
 
-					if 'chunkSize' in resInfo:
-						chunkSize = resInfo["chunkSize"]
-					else:
-						chunkSize = 1
-
-					outDir = nameToUse
-					outFormat = resSettings["format"]
-
-					removePMCOADuplicates = False
-					if "removePMCOADuplicates" in resSettings and resSettings["removePMCOADuplicates"] == True:
-						removePMCOADuplicates = True
-
-					#command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*%s} --oFormat %s" % (inDir,inFilter,inFormat,outDir,inFilter,outFormat)
-					conversionInfo = (os.path.join(workingDirectory,inDir),inFormat,os.path.join(workingDirectory,outDir),outFormat,chunkSize)
-					conversionInfo = {}
-					conversionInfo['inDir'] = os.path.join(workingDirectory,inDir)
-					conversionInfo['inFormat'] = inFormat
-					conversionInfo['outDir'] = os.path.join(workingDirectory,outDir)
-					conversionInfo['outFormat'] = outFormat
-					conversionInfo['chunkSize'] = chunkSize
-					conversions.append( conversionInfo )
-
-					whichHashes = None
-					if "usePubmedHashes" in resSettings:
-						whichHashes = [ p.strip() for p in resSettings["usePubmedHashes"].split(',') ]
-
-					resourceSymlink = os.path.join(workingDirectory,inDir)
-					if not os.path.islink(resourceSymlink) and not os.path.isdir(resourceSymlink):
-						os.symlink(getResourceLocation(resName), resourceSymlink)
-
-					if "generatePubmedHashes" in resInfo and resInfo["generatePubmedHashes"] == True:
-						hashesSymlink = os.path.join(workingDirectory,inDir+'.hashes')
-						hashesInfo = {'resourceDir':os.path.join(workingDirectory,inDir),'hashDir':hashesSymlink,'removePMCOADuplicates':removePMCOADuplicates,'whichHashes':whichHashes}
-
-						resourcesWithHashes.append(hashesInfo)
-						if not os.path.islink(hashesSymlink):
-							hashesDir = getResourceLocation(resName)+'.hashes'
-							#assert os.path.isdir(hashesDir), "Couldn't find directory containing hashes for resource: %s. Looked in %s" % (resName,hashesDir)
-							os.symlink(hashesDir, hashesSymlink)
-
-					newDirectory = os.path.join(workingDirectory,outDir)
-					if not os.path.isdir(newDirectory):
-						os.makedirs(newDirectory)
+				resInfo = {'format':'pubmedxml','chunkSize':1}
+			elif resName == 'PMCOA_CUSTOM':
+				#print(projectSettings)
+				if "format" in projectSettings:
+					dirToCreate = nameToUse + "_UNCONVERTED"
 				else:
-					resourceSymlink = os.path.join(workingDirectory,nameToUse)
-					if not os.path.islink(resourceSymlink) and not os.path.isdir(resourceSymlink):
-						os.symlink(getResourceLocation(resName), resourceSymlink)
+					dirToCreate = nameToUse
+				dirToCreate = os.path.join(workingDirectory,dirToCreate)
+				if os.path.isdir(dirToCreate):
+					shutil.rmtree(dirToCreate)
+				os.makedirs(dirToCreate)
 
-				newResourceList.append(resName)
+				pmcids = str(projectSettings['pmcids'])
+				for pmcid in pmcids.split(','):
+					filename = os.path.join(dirToCreate,'%d.nxml' % int(pmcid))
+					eutilsToFile('pmc',pmcid,filename)
+
+				resInfo = {'format':'pmcxml','chunkSize':1}
 			else:
-				resourceSymlink = os.path.join(workingDirectory,resName)
-				if not os.path.islink(resourceSymlink):
-					os.symlink(getResourceLocation(resName), resourceSymlink)
-				newResourceList.append(resName)
+				resInfo = pubrunner.getResourceInfo(resName)
 
-	toolSettings["resources"] = newResourceList
+			if "format" in projectSettings:
+				inDir = nameToUse + "_UNCONVERTED"
+				inFormat = resInfo["format"]
+
+				if 'chunkSize' in resInfo:
+					chunkSize = resInfo["chunkSize"]
+				else:
+					chunkSize = 1
+
+				outDir = nameToUse
+				outFormat = projectSettings["format"]
+
+				removePMCOADuplicates = False
+				if "removePMCOADuplicates" in projectSettings and projectSettings["removePMCOADuplicates"] == True:
+					removePMCOADuplicates = True
+
+				#command = "pubrunner_convert --i {IN:%s/*%s} --iFormat %s --o {OUT:%s/*%s} --oFormat %s" % (inDir,inFilter,inFormat,outDir,inFilter,outFormat)
+				conversionInfo = (os.path.join(workingDirectory,inDir),inFormat,os.path.join(workingDirectory,outDir),outFormat,chunkSize)
+				conversionInfo = {}
+				conversionInfo['inDir'] = os.path.join(workingDirectory,inDir)
+				conversionInfo['inFormat'] = inFormat
+				conversionInfo['outDir'] = os.path.join(workingDirectory,outDir)
+				conversionInfo['outFormat'] = outFormat
+				conversionInfo['chunkSize'] = chunkSize
+				conversions.append( conversionInfo )
+
+				whichHashes = None
+				if "usePubmedHashes" in projectSettings:
+					whichHashes = [ p.strip() for p in projectSettings["usePubmedHashes"].split(',') ]
+
+				resourceSymlink = os.path.join(workingDirectory,inDir)
+				if not os.path.islink(resourceSymlink) and not os.path.isdir(resourceSymlink):
+					os.symlink(getResourceLocation(resName), resourceSymlink)
+
+				if "generatePubmedHashes" in resInfo and resInfo["generatePubmedHashes"] == True:
+					hashesSymlink = os.path.join(workingDirectory,inDir+'.hashes')
+					hashesInfo = {'resourceDir':os.path.join(workingDirectory,inDir),'hashDir':hashesSymlink,'removePMCOADuplicates':removePMCOADuplicates,'whichHashes':whichHashes}
+
+					resourcesWithHashes.append(hashesInfo)
+					if not os.path.islink(hashesSymlink):
+						hashesDir = getResourceLocation(resName)+'.hashes'
+						#assert os.path.isdir(hashesDir), "Couldn't find directory containing hashes for resource: %s. Looked in %s" % (resName,hashesDir)
+						os.symlink(hashesDir, hashesSymlink)
+
+				newDirectory = os.path.join(workingDirectory,outDir)
+				if not os.path.isdir(newDirectory):
+					os.makedirs(newDirectory)
+			else:
+				resourceSymlink = os.path.join(workingDirectory,nameToUse)
+				if not os.path.islink(resourceSymlink) and not os.path.isdir(resourceSymlink):
+					os.symlink(getResourceLocation(resName), resourceSymlink)
+
 	toolSettings["pubmed_hashes"] = resourcesWithHashes
 
 	toolSettings["conversions"] = conversions
@@ -240,13 +239,16 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 	if not mode in toolSettings["resources"]:
 		toolSettings["resources"][mode] = []
 
+	preprocessResourceSettings(toolSettings)
+
 	processResourceSettings(toolSettings,mode,workingDirectory)
 
+	resourcesInUse = toolSettings["resources"]['all'] + toolSettings["resources"][mode]
 	if not forceresource_dir is None:
 		assert os.path.isdir(forceresource_dir), "forceresource_dir must be a directory. %s is not" % forceresource_dir
-		if len(toolSettings["resources"]) > 0:
-			firstResource = toolSettings["resources"][0]
-			print("\nUsing provided resource location for first resource %s" % toolSettings["resources"][0])
+		if len(resourcesInUse) > 0:
+			firstResourceName,_ = resourcesInUse[0]
+			print("\nUsing provided resource location for first resource %s" % firstResourceName)
 
 			singleConversion = {}
 			singleConversion["inDir"] = forceresource_dir
@@ -259,18 +261,19 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 				os.unlink(conversion["inDir"])
 				shutil.rmtree(conversion["outDir"])
 				os.makedirs(conversion["outDir"])
-			if len(toolSettings["resources"]) > 1:
-				print("Using empty directories for remaining resources: %s" % ",".join(toolSettings["resources"][1:]))
+			if len(resourcesInUse) > 1:
+				otherResources = [ resName for resName,_ in resourcesInUse[1:] ]
+				print("Using empty directories for remaining resources: %s" % ",".join(otherResources))
 			toolSettings["conversions"] = [singleConversion]
 			toolSettings["pubmed_hashes"] = []
 		#print(json.dumps(toolSettings,indent=2))
 		#sys.exit(0)
 	elif doGetResources:
 		print("\nGetting resources")
-		for res in toolSettings["resources"]:
-			if res in ['PUBMED_CUSTOM','PMCOA_CUSTOM']:
+		for resName,_ in resourcesInUse:
+			if resName in ['PUBMED_CUSTOM','PMCOA_CUSTOM']:
 				continue
-			pubrunner.getResource(res)
+			pubrunner.getResource(resName)
 	else:
 		print("\nNot getting resources (--nogetresource)")
 
