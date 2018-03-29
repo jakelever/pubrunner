@@ -241,8 +241,6 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 
 	preprocessResourceSettings(toolSettings)
 
-	processResourceSettings(toolSettings,mode,workingDirectory)
-
 	resourcesInUse = toolSettings["resources"]['all'] + toolSettings["resources"][mode]
 	if not forceresource_dir is None:
 		assert os.path.isdir(forceresource_dir), "forceresource_dir must be a directory. %s is not" % forceresource_dir
@@ -276,6 +274,8 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 			pubrunner.getResource(resName)
 	else:
 		print("\nNot getting resources (--nogetresource)")
+
+	processResourceSettings(toolSettings,mode,workingDirectory)
 
 	pmidsFromPMCFile = None
 	needPMIDsFromPMC = any( hashesInfo['removePMCOADuplicates'] for hashesInfo in toolSettings["pubmed_hashes"] )
