@@ -5,7 +5,8 @@ resources:
    full:
       - PUBMED
    test:
-      - PUBMED_TWOFILES:
+      - PUBMED_CUSTOM:
+         pmids: 25155290
          rename: PUBMED
 run:
    - python CountWords.py -i {IN:PUBMED} -o {OUT:OUTPUTDIR}

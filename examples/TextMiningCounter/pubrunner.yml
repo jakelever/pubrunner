@@ -6,7 +6,8 @@ resources:
       - PUBMED:
          format: txt
    test:
-      - PUBMED_TWOFILES:
+      - PUBMED_CUSTOM:
+         pmids: 29590681
          format: txt
          rename: PUBMED
 run:
