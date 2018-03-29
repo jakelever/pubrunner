@@ -9,6 +9,8 @@ import requests
 import datetime
 import csv
 import atexit
+import codecs
+from Bio import Entrez
 
 def extractVariables(command):
 	assert isinstance(command,six.string_types)
@@ -27,6 +29,13 @@ def getResourceLocation(resource):
 	resourceDir = os.path.expanduser(globalSettings["storage"]["resources"])
 	thisResourceDir = os.path.join(resourceDir,resource)
 	return thisResourceDir
+
+def eutilsToFile(db,id,filename):
+	Entrez.email = "jlever@bcgsc.ca"     # Always tell NCBI who you are
+	handle = Entrez.efetch(db=db, id=id, rettype="gb", retmode="xml")
+	with codecs.open(filename,'w','utf-8') as f:
+		xml = handle.read()
+		f.write(xml)
 	
 def processResourceSettings(toolSettings,mode,workingDirectory):
 	newResourceList = []
@@ -40,15 +49,51 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 
 				# TODO: Rename resSettings and resInfo to be more meaningful
 				resName,resSettings = list(resName.items())[0]
-				resInfo = pubrunner.getResourceInfo(resName)
 
-				allowed = ['rename','format','removePMCOADuplicates','usePubmedHashes']
+				allowed = ['rename','format','removePMCOADuplicates','usePubmedHashes','pmids','pmcids']
 				for k in resSettings.keys():
 					assert k in allowed, "Unexpected attribute (%s) for resource %s" % (k,resName)
 
 				nameToUse = resName
 				if "rename" in resSettings:
 					nameToUse = resSettings["rename"]
+
+				if resName == 'PUBMED_CUSTOM':
+					#print(resSettings)
+					if "format" in resSettings:
+						dirToCreate = nameToUse + "_UNCONVERTED"
+					else:
+						dirToCreate = nameToUse
+					dirToCreate = os.path.join(workingDirectory,dirToCreate)
+					if os.path.isdir(dirToCreate):
+						shutil.rmtree(dirToCreate)
+					os.makedirs(dirToCreate)
+
+					pmids = str(resSettings['pmids'])
+					for pmid in pmids.split(','):
+						filename = os.path.join(dirToCreate,'%d.xml' % int(pmid))
+						eutilsToFile('pubmed',pmid,filename)
+
+					resInfo = {'format':'pubmedxml','chunkSize':1}
+				elif resName == 'PMCOA_CUSTOM':
+					#print(resSettings)
+					if "format" in resSettings:
+						dirToCreate = nameToUse + "_UNCONVERTED"
+					else:
+						dirToCreate = nameToUse
+					dirToCreate = os.path.join(workingDirectory,dirToCreate)
+					if os.path.isdir(dirToCreate):
+						shutil.rmtree(dirToCreate)
+					os.makedirs(dirToCreate)
+
+					pmcids = str(resSettings['pmcids'])
+					for pmcid in pmcids.split(','):
+						filename = os.path.join(dirToCreate,'%d.nxml' % int(pmcid))
+						eutilsToFile('pmc',pmcid,filename)
+
+					resInfo = {'format':'pmcxml','chunkSize':1}
+				else:
+					resInfo = pubrunner.getResourceInfo(resName)
 
 				if "format" in resSettings:
 					inDir = nameToUse + "_UNCONVERTED"
@@ -81,7 +126,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 						whichHashes = [ p.strip() for p in resSettings["usePubmedHashes"].split(',') ]
 
 					resourceSymlink = os.path.join(workingDirectory,inDir)
-					if not os.path.islink(resourceSymlink):
+					if not os.path.islink(resourceSymlink) and not os.path.isdir(resourceSymlink):
 						os.symlink(getResourceLocation(resName), resourceSymlink)
 
 					if "generatePubmedHashes" in resInfo and resInfo["generatePubmedHashes"] == True:
@@ -99,7 +144,7 @@ def processResourceSettings(toolSettings,mode,workingDirectory):
 						os.makedirs(newDirectory)
 				else:
 					resourceSymlink = os.path.join(workingDirectory,nameToUse)
-					if not os.path.islink(resourceSymlink):
+					if not os.path.islink(resourceSymlink) and not os.path.isdir(resourceSymlink):
 						os.symlink(getResourceLocation(resName), resourceSymlink)
 
 				newResourceList.append(resName)
@@ -223,6 +268,8 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 	elif doGetResources:
 		print("\nGetting resources")
 		for res in toolSettings["resources"]:
+			if res in ['PUBMED_CUSTOM','PMCOA_CUSTOM']:
+				continue
 			pubrunner.getResource(res)
 	else:
 		print("\nNot getting resources (--nogetresource)")

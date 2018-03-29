@@ -10,3 +10,4 @@ pymarc
 snakemake
 drmaa
 pyfiglet
+biopython
