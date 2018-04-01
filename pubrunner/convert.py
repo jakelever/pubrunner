@@ -474,6 +474,8 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 
 			writer.writedocument(biocDoc)
 
+
+allowedSubsections = {"abbreviations","additional information","analysis","author contributions","authors' contributions","authors’ contributions","background","case report","competing interests","conclusion","conclusions","conflict of interest","conflicts of interest","consent","data analysis","data collection","discussion","ethics statement","funding","introduction","limitations","material and methods","materials","materials and methods","measures","method","methods","participants","patients and methods","pre-publication history","related literature","results","results and discussion","statistical analyses","statistical analysis","statistical methods","statistics","study design","summary","supplementary data","supplementary information","supplementary material","supporting information"}
 def pmcxml2bioc(pmcxmlFilename, biocFilename):
 	try:
 		with bioc.iterwrite(biocFilename) as writer:
@@ -492,10 +494,17 @@ def pmcxml2bioc(pmcxmlFilename, biocFilename):
 
 				offset = 0
 				for groupName,textSourceGroup in pmcDoc["textSources"].items():
+					subsection = None
 					for textSource in textSourceGroup:
 						textSource = trimSentenceLengths(textSource)
 						passage = bioc.BioCPassage()
+
+						subsectionCheck = textSource.lower().strip('01234567890. ')
+						if subsectionCheck in allowedSubsections:
+							subsection = subsectionCheck
+
 						passage.infons['section'] = groupName
+						passage.infons['subsection'] = subsection
 						passage.text = textSource
 						passage.offset = offset
 						offset += len(textSource)
