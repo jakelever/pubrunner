@@ -12,6 +12,7 @@ import atexit
 import codecs
 from collections import defaultdict
 from Bio import Entrez
+import sys
 
 def extractVariables(command):
 	assert isinstance(command,six.string_types)
@@ -67,7 +68,8 @@ def prepareConversionAndHashingRuns(toolSettings,mode,workingDirectory):
 				nameToUse = projectSettings["rename"]
 
 			if resName == 'PUBMED_CUSTOM':
-				#print(projectSettings)
+				assert 'pmids' in projectSettings, 'Must provide pmids when using PUBMED_CUSTOM resource'
+
 				if "format" in projectSettings:
 					dirToCreate = nameToUse + "_UNCONVERTED"
 				else:
@@ -84,7 +86,8 @@ def prepareConversionAndHashingRuns(toolSettings,mode,workingDirectory):
 
 				resInfo = {'format':'pubmedxml','chunkSize':1}
 			elif resName == 'PMCOA_CUSTOM':
-				#print(projectSettings)
+				assert 'pmcids' in projectSettings, 'Must provide pmids when using PMCOA_CUSTOM resource'
+
 				if "format" in projectSettings:
 					dirToCreate = nameToUse + "_UNCONVERTED"
 				else:
@@ -186,6 +189,7 @@ def cleanWorkingDirectory(directory,doTest,execute=False):
 def downloadPMCOAMetadata(workingDirectory):
 	url = 'ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_file_list.csv'
 	localFile = os.path.join(workingDirectory,'oa_file_list.csv')
+	#localFile = '/projects/bioracle/jake/pubrunner/oa_file_list.csv'
 	pubrunner.download(url,localFile)
 
 	pmids = set()
@@ -262,7 +266,12 @@ def assignFilesForConversion(inDir, previousAssignmentFile, outDir, outPattern, 
 		filesWithUpdates = sorted(filesWithUpdates)
 		files = [ f for lastupdate,f in filesWithUpdates ]
 
-	assignedChunks = previousAssignmentFile
+	assignedChunks = {}
+	for outputFile,chunk in previousAssignmentFile.items():
+		assert isinstance(chunk,list)
+		for f in chunk:
+			assert not f in assignedChunks
+			assignedChunks[f] = outputFile
 
 	# We'll check if any previous input files have disappeared, and set that chunk to dirty (so it is reprocessed)
 	filesSet = set(files)
@@ -362,8 +371,6 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 				print("Using empty directories for remaining resources: %s" % ",".join(otherResources))
 			toolSettings["conversions"] = [singleConversion]
 			toolSettings["pubmed_hashes"] = []
-		#print(json.dumps(toolSettings,indent=2))
-		#sys.exit(0)
 	elif doGetResources:
 		print("\nGetting resources")
 		for resName,_ in resourcesInUse:
@@ -409,7 +416,7 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 		chunksFile = outDir + '.json'
 		previousChunks = {}
 		if os.path.isfile(chunksFile):
-			with open(chunksFile,'wb') as f:
+			with open(chunksFile,'r') as f:
 				previousChunks = json.load(f)
 
 		outPattern = os.path.basename(inDir) + ".converted.%08d." + outFormat
@@ -420,6 +427,13 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 
 		with open(chunksFile,'w') as f:
 			json.dump(newChunks,f,indent=2)
+
+		#for outputfile,inputfiles in newChunks.items():
+		#	latestTimestamp = max( os.path.getmtime(inputfile) for inputfile in inputfiles )
+		#	print(latestTimestamp)
+		#	break
+
+		#sys.exit(0)
 
 		parameters = {'CHUNKS':chunksFile,'INFORMAT':inFormat,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
 		if inDir in directoriesWithHashes:
