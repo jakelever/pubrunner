@@ -159,9 +159,18 @@ def getMetaInfoForPMCArticle(articleElem):
 			if thisCompleteness > completeness:
 				mostComplete = pubYear,pubMonth,pubDay
 		pubYear,pubMonth,pubDay = mostComplete
+					
+	journal = articleElem.findall('./front/journal-meta/journal-title') + articleElem.findall('./front/journal-meta/journal-title-group/journal-title') + articleElem.findall('./front-stub/journal-title-group/journal-title')
+	assert len(journal) <= 1
+	journalText = " ".join(extractTextFromElemList(journal))
+	
+	journalISOText = ''
+	journalISO = articleElem.findall('./front/journal-meta/journal-id') + articleElem.findall('./front-stub/journal-id')
+	for field in journalISO:
+		if 'journal-id-type' in field.attrib and field.attrib['journal-id-type'] == "iso-abbrev":
+			journalISOText = field.text
 
-			
-	return pmidText,pmcidText,doiText,pubYear,pubMonth,pubDay
+	return pmidText,pmcidText,doiText,pubYear,pubMonth,pubDay,journalText,journalISOText
 
 def getJournalDateForMedlineFile(elem,pmid):
 	yearRegex = re.compile(r'(18|19|20)\d\d')
@@ -324,7 +333,7 @@ def processPMCFile(pmcFile):
 		for event, elem in etree.iterparse(openfile, events=('start', 'end', 'start-ns', 'end-ns')):
 			if (event=='end' and elem.tag=='article'):
 			
-				pmidText,pmcidText,doiText,pubYear,pubMonth,pubDay = getMetaInfoForPMCArticle(elem)
+				pmidText,pmcidText,doiText,pubYear,pubMonth,pubDay,journal,journalISO = getMetaInfoForPMCArticle(elem)
 
 				# We're going to process the main article along with any subarticles
 				# And if any of the subarticles have distinguishing IDs (e.g. PMID), then
@@ -334,16 +343,19 @@ def processPMCFile(pmcFile):
 				for articleElem in subarticles:
 					if articleElem == elem:
 						# This is the main parent article. Just use its IDs
-						subPmidText,subPmcidText,subDoiText,subPubYear,subPubMonth,subPubDay = pmidText,pmcidText,doiText,pubYear,pubMonth,pubDay
+						subPmidText,subPmcidText,subDoiText,subPubYear,subPubMonth,subPubDay,subJournal,subJournalISO = pmidText,pmcidText,doiText,pubYear,pubMonth,pubDay,journal,journalISO
 					else:
 						# Check if this subarticle has any distinguishing IDs and use them instead
-						subPmidText,subPmcidText,subDoiText,subPubYear,subPubMonth,subPubDay = getMetaInfoForPMCArticle(articleElem)
+						subPmidText,subPmcidText,subDoiText,subPubYear,subPubMonth,subPubDay,subJournal,subJournalISO = getMetaInfoForPMCArticle(articleElem)
 						if subPmidText=='' and subPmcidText == '' and subDoiText == '':
 							subPmidText,subPmcidText,subDoiText = pmidText,pmcidText,doiText
 						if subPubYear == None:
 							subPubYear = pubYear
 							subPubMonth = pubMonth
 							subPubDay = pubDay
+						if subJournal == None:
+							subJournal = journal
+							subJournalISO = journalISO
 							
 					# Extract the title of paper
 					title = articleElem.findall('./front/article-meta/title-group/article-title') + articleElem.findall('./front-stub/title-group/article-title')
@@ -359,23 +371,14 @@ def processPMCFile(pmcFile):
 					# Extract the abstract from the paper
 					abstract = articleElem.findall('./front/article-meta/abstract') + articleElem.findall('./front-stub/abstract')
 					abstractText = extractTextFromElemList(abstract)
-					
-					journal = articleElem.findall('./front/journal-meta/journal-title') + articleElem.findall('./front/journal-meta/journal-title-group/journal-title') + articleElem.findall('./front-stub/journal-title-group/journal-title')
-					assert len(journal) <= 1
-					journalText = " ".join(extractTextFromElemList(journal))
-					
-					journalISOText = ''
-					journalISO = articleElem.findall('./front/journal-meta/journal-id') + articleElem.findall('./front-stub/journal-id')
-					for field in journalISO:
-						if 'journal-id-type' in field.attrib and field.attrib['journal-id-type'] == "iso-abbrev":
-							journalISOText = field.text
+
 					
 					# Extract the full text from the paper as well as supplementaries and floating blocks of text
 					articleText = extractTextFromElemList(articleElem.findall('./body'))
 					backText = extractTextFromElemList(articleElem.findall('./back'))
 					floatingText = extractTextFromElemList(articleElem.findall('./floats-group'))
 					
-					document = {'pmid':subPmidText, 'pmcid':subPmcidText, 'doi':subDoiText, 'pubYear':subPubYear, 'pubMonth':subPubMonth, 'pubDay':subPubDay, 'journal':journalText, 'journalISO':journalISOText}
+					document = {'pmid':subPmidText, 'pmcid':subPmcidText, 'doi':subDoiText, 'pubYear':subPubYear, 'pubMonth':subPubMonth, 'pubDay':subPubDay, 'journal':journal, 'journalISO':journalISO}
 
 					textSources = {}
 					textSources['title'] = titleText
