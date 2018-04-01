@@ -1,0 +1,15 @@
+name: SmallTextFinder
+version: 0.1
+url: https://github.com/jakelever/pubrunner/tree/master/examples/SmallTextFinder
+resources:
+   full:
+      - PMCOA:
+         format: bioc
+   test:
+      - PMCOA_CUSTOM:
+         pmcids: 4496380
+         format: bioc
+         rename: PMCOA
+run:
+   - python smallTextFinder.py --inBioC {IN:PMCOA/%} --outTSV {OUT:short/%.tsv}
+   - sh summarize.sh {IN:short} {OUT:summary.tsv}
