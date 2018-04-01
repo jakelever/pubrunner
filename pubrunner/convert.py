@@ -137,21 +137,28 @@ def getMetaInfoForPMCArticle(articleElem):
 	pubdates = articleElem.findall('./front/article-meta/pub-date') + articleElem.findall('./front-stub/pub-date')
 	pubYear,pubMonth,pubDay = None,None,None
 	if len(pubdates) >= 1:
-		pubYear_Field = pubdates[0].find("./year")
-		if not pubYear_Field is None:
-			pubYear = pubYear_Field.text.strip().replace('\n',' ')
-		pubSeason_Field = pubdates[0].find("./season")
-		if not pubSeason_Field is None:
-			pubSeason = pubSeason_Field.text.strip().replace('\n',' ')
-			monthSearch = [ c for c in (list(calendar.month_name) + list(calendar.month_abbr)) if c != '' and c in pubSeason ]
-			if len(monthSearch) > 0:
-				pubMonth = monthMapping[monthSearch[0]]
-		pubMonth_Field = pubdates[0].find("./month")
-		if not pubMonth_Field is None:
-			pubMonth = pubMonth_Field.text.strip().replace('\n',' ')
-		pubDay_Field = pubdates[0].find("./day")
-		if not pubDay_Field is None:
-			pubDay = pubDay_Field.text.strip().replace('\n',' ')
+		mostComplete,completeness = None,0
+		for pubdate in pubdates:
+			pubYear_Field = pubdate.find("./year")
+			if not pubYear_Field is None:
+				pubYear = pubYear_Field.text.strip().replace('\n',' ')
+			pubSeason_Field = pubdate.find("./season")
+			if not pubSeason_Field is None:
+				pubSeason = pubSeason_Field.text.strip().replace('\n',' ')
+				monthSearch = [ c for c in (list(calendar.month_name) + list(calendar.month_abbr)) if c != '' and c in pubSeason ]
+				if len(monthSearch) > 0:
+					pubMonth = monthMapping[monthSearch[0]]
+			pubMonth_Field = pubdate.find("./month")
+			if not pubMonth_Field is None:
+				pubMonth = pubMonth_Field.text.strip().replace('\n',' ')
+			pubDay_Field = pubdate.find("./day")
+			if not pubDay_Field is None:
+				pubDay = pubDay_Field.text.strip().replace('\n',' ')
+
+			thisCompleteness = sum(not x is None for x in [pubYear,pubMonth,pubDay])
+			if thisCompleteness > completeness:
+				mostComplete = pubYear,pubMonth,pubDay
+		pubYear,pubMonth,pubDay = mostComplete
 
 			
 	return pmidText,pmcidText,doiText,pubYear,pubMonth,pubDay
