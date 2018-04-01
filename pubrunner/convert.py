@@ -10,6 +10,7 @@ import shutil
 import six
 import unicodedata
 import calendar
+import json
 
 # Remove empty brackets (that could happen if the contents have been removed already
 # e.g. for citation ( [3] [4] ) -> ( ) -> nothing
@@ -524,6 +525,17 @@ def marcxml2bioc(marcxmlFilename,biocFilename):
 			writeMarcXMLRecordToBiocFile(record,writer)
 
 		pymarc.map_xml(marcxml2bioc_helper,inF)
+
+def convertFilesFromFilelist(listFile,inFormat,outFile,outFormat,idFilterListfile=None):
+	with open(listFile) as f:
+		inFiles = json.load(f)
+
+	idFilterfiles = None
+	if idFilterListfile:
+		with open(idFilterListfile) as f:
+			idFilterfiles = json.load(f)
+
+	convertFiles(inFiles,inFormat,outFile,outFormat,idFilterfiles)
 
 acceptedInFormats = ['bioc','pubmedxml','marcxml','pmcxml','uimaxmi']
 acceptedOutFormats = ['bioc','txt']

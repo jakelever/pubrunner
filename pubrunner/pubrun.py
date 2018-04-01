@@ -255,9 +255,7 @@ def getPMCIDFromFilename(filename):
 	else:
 		return None
 
-def assignFilesForConversion(inDir, previousAssignmentFile, outDir, outPattern, maxChunkSize, pmcidsToLastUpdate=None):
-	files = findFiles(inDir)
-
+def assignFilesForConversion(files, previousAssignmentFile, outDir, outPattern, maxChunkSize, pmcidsToLastUpdate=None):
 	if not pmcidsToLastUpdate is None:
 		print("Sorting files by PMC last update metadata")
 		filesWithUpdates = [ (pmcidsToLastUpdate[getPMCIDFromFilename(f)],f) for f in files ]
@@ -384,8 +382,8 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 
 	pmidsFromPMCFile,pmcidsToLastUpdate = None,None
 	needPMIDsFromPMC = any( hashesInfo['removePMCOADuplicates'] for hashesInfo in toolSettings["pubmed_hashes"] )
-	pmcoaIsAResource = any( resName == 'PMCOA' for resName,_ in resourcesInUse )
-	if needPMIDsFromPMC or pmcoaIsAResource:
+	#pmcoaIsAResource = any( resName == 'PMCOA' for resName,_ in resourcesInUse )
+	if needPMIDsFromPMC:
 		print("\nGetting Pubmed Central metadata for PMID info and/or file dates")
 		pmidsFromPMCFile,pmcidsToLastUpdate = downloadPMCOAMetadata(workingDirectory)
 
@@ -412,6 +410,7 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 		inDir,inFormat = conversionInfo['inDir'],conversionInfo['inFormat']
 		outDir,outFormat = conversionInfo['outDir'],conversionInfo['outFormat']
 		chunkSize = conversionInfo['chunkSize']
+		useHashes = (inDir in directoriesWithHashes)
 
 		chunksFile = outDir + '.json'
 		previousChunks = {}
@@ -419,27 +418,50 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 			with open(chunksFile,'r') as f:
 				previousChunks = json.load(f)
 
-		outPattern = os.path.basename(inDir) + ".converted.%08d." + outFormat
-		if  os.path.basename(inDir) == 'PMCOA_UNCONVERTED':
-			newChunks = assignFilesForConversion(inDir, previousChunks, outDir, outPattern, chunkSize, pmcidsToLastUpdate)
-		else:
-			newChunks = assignFilesForConversion(inDir, previousChunks, outDir, outPattern, chunkSize)
+		allInputFiles = findFiles(inDir)
+		#timestamps = { f:os.path.getmtime(f) for f in allInputFiles }
+		timestamps = [ os.path.getmtime(f) for f in allInputFiles ]
+		allInputFiles = sorted(list(zip(timestamps,allInputFiles)))
+		timestampMap = { f:timestamp for timestamp,f in allInputFiles }
+		allInputFiles = [ f for timestamp,f in allInputFiles ]
+
+		outPattern = os.path.basename(inDir).replace('_UNCONVERTED','') + ".%08d." + outFormat
+		newChunks = assignFilesForConversion(allInputFiles, previousChunks, outDir, outPattern, chunkSize)
 
 		with open(chunksFile,'w') as f:
 			json.dump(newChunks,f,indent=2)
 
-		#for outputfile,inputfiles in newChunks.items():
-		#	latestTimestamp = max( os.path.getmtime(inputfile) for inputfile in inputfiles )
-		#	print(latestTimestamp)
-		#	break
+		chunkDir = outDir + '.CHUNKS'
+		if os.path.isdir(chunkDir):
+			shutil.rmtree(chunkDir)
+		os.makedirs(chunkDir)
+		for outputfile,inputfiles in newChunks.items():
+			latestTimestamp = max( timestampMap[inputfile] for inputfile in inputfiles )
+			chunkFile = os.path.join(chunkDir,os.path.basename(outputfile))
+			with open(chunkFile,'w') as f:
+				json.dump(inputfiles,f)
+			os.utime(chunkFile,(latestTimestamp,latestTimestamp))
+			#print(latestTimestamp)
 
-		#sys.exit(0)
+		parameters = {'CHUNKDIR':chunkDir,'OUTDIR':outDir,'INFORMAT':inFormat,'OUTFORMAT':outFormat}
 
-		parameters = {'CHUNKS':chunksFile,'INFORMAT':inFormat,'OUTFORMAT':outFormat,'CHUNKSIZE':str(chunkSize)}
-		if inDir in directoriesWithHashes:
-			pmidDirectory = inDir.rstrip('/') + '.pmids'
+		if useHashes:
+			pmidDir = inDir.rstrip('/') + '.pmids'
 			assert os.path.isdir(pmidDirectory), "Cannot find PMIDs directory for resource. Tried: %s" % pmidDirectory
-			parameters['PMIDDIR'] = pmidDirectory
+
+			pmidChunkDir = outDir + '.PMIDCHUNKS'
+			if os.path.isdir(pmidChunkDir):
+				shutil.rmtree(pmidChunkDir)
+			os.makedirs(pmidChunkDir)
+			for outputfile,inputfiles in newChunks.items():
+				pmidfiles = [ os.path.join(pmidDir, os.path.basename(f) + '.pmids') for f in inputfiles ]
+				latestTimestamp = max( os.path.getmtime(pmidfile) for pmidfile in pmidfiles )
+				pmidChunkFile = os.path.join(pmidChunkDir,os.path.basename(outputfile))
+				with open(pmidChunkFile,'w') as f:
+					json.dump(pmidfiles,f)
+				os.utime(pmidChunkFile,(latestTimestamp,latestTimestamp))
+
+			parameters['PMIDCHUNKDIR'] = pmidChunkDir
 
 		convertSnakeFile = os.path.join(pubrunner.__path__[0],'Snakefiles','Convert.py')
 		pubrunner.launchSnakemake(convertSnakeFile,parameters=parameters)
