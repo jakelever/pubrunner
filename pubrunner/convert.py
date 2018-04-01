@@ -474,32 +474,35 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 			writer.writedocument(biocDoc)
 
 def pmcxml2bioc(pmcxmlFilename, biocFilename):
-	with bioc.iterwrite(biocFilename) as writer:
-		for pmcDoc in processPMCFile(pmcxmlFilename):
-			biocDoc = bioc.BioCDocument()
-			biocDoc.id = pmcDoc["pmid"]
-			biocDoc.infons['title'] = " ".join(pmcDoc["textSources"]["title"])
-			biocDoc.infons['pmid'] = pmcDoc["pmid"]
-			biocDoc.infons['pmcid'] = pmcDoc["pmcid"]
-			biocDoc.infons['doi'] = pmcDoc["doi"]
-			biocDoc.infons['year'] = pmcDoc["pubYear"]
-			biocDoc.infons['month'] = pmcDoc["pubMonth"]
-			biocDoc.infons['day'] = pmcDoc["pubDay"]
-			biocDoc.infons['journal'] = pmcDoc["journal"]
-			biocDoc.infons['journalISO'] = pmcDoc["journalISO"]
+	try:
+		with bioc.iterwrite(biocFilename) as writer:
+			for pmcDoc in processPMCFile(pmcxmlFilename):
+				biocDoc = bioc.BioCDocument()
+				biocDoc.id = pmcDoc["pmid"]
+				biocDoc.infons['title'] = " ".join(pmcDoc["textSources"]["title"])
+				biocDoc.infons['pmid'] = pmcDoc["pmid"]
+				biocDoc.infons['pmcid'] = pmcDoc["pmcid"]
+				biocDoc.infons['doi'] = pmcDoc["doi"]
+				biocDoc.infons['year'] = pmcDoc["pubYear"]
+				biocDoc.infons['month'] = pmcDoc["pubMonth"]
+				biocDoc.infons['day'] = pmcDoc["pubDay"]
+				biocDoc.infons['journal'] = pmcDoc["journal"]
+				biocDoc.infons['journalISO'] = pmcDoc["journalISO"]
 
-			offset = 0
-			for groupName,textSourceGroup in pmcDoc["textSources"].items():
-				for textSource in textSourceGroup:
-					textSource = trimSentenceLengths(textSource)
-					passage = bioc.BioCPassage()
-					passage.infons['section'] = groupName
-					passage.text = textSource
-					passage.offset = offset
-					offset += len(textSource)
-					biocDoc.add_passage(passage)
+				offset = 0
+				for groupName,textSourceGroup in pmcDoc["textSources"].items():
+					for textSource in textSourceGroup:
+						textSource = trimSentenceLengths(textSource)
+						passage = bioc.BioCPassage()
+						passage.infons['section'] = groupName
+						passage.text = textSource
+						passage.offset = offset
+						offset += len(textSource)
+						biocDoc.add_passage(passage)
 
-			writer.writedocument(biocDoc)
+				writer.writedocument(biocDoc)
+	except etree.ParseError:
+		raise RuntimeError("Parsing error in PMC xml file: %s" % pmcxmlFilename)	
 
 def mergeBioc(biocFilename, outBiocWriter,idFilter):
 	with bioc.iterparse(biocFilename) as parser:
