@@ -190,10 +190,10 @@ expectedOutputFiles = predictOutputFiles(inputVariables,outputVariables)
 
 command = addTouchToCommands(command,outputVariables)
 
-print("command:",command)
-print("inputVariables",inputVariables)
-print("outputVariables",outputVariables)
-print("expectedOutputFiles",expectedOutputFiles)
+#print("command:",command)
+#print("inputVariables",inputVariables)
+#print("outputVariables",outputVariables)
+#print("expectedOutputFiles",expectedOutputFiles)
 
 # If we can determine the output files, we will create a dependency on them to force the main rule to run
 if len(expectedOutputFiles) > 0:
