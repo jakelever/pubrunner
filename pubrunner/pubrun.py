@@ -351,7 +351,6 @@ def pubrun(directory,doTest,doGetResources,forceresource_dir=None,forceresource_
 	resourcesInUse = toolSettings["resources"]['all'] + toolSettings["resources"][mode]
 	if not forceresource_dir is None:
 		assert os.path.isdir(forceresource_dir), "forceresource_dir must be a directory. %s is not" % forceresource_dir
-		print(json.dumps(toolSettings,indent=2))
 		if len(resourcesInUse) > 0:
 			firstResourceName,_ = resourcesInUse[0]
 			print("\nUsing provided resource location for first resource %s" % firstResourceName)
