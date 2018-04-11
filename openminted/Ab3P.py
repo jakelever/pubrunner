@@ -9,6 +9,7 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Main access point for OpenMinTeD Docker component')
 	parser.add_argument('--input',required=True,type=str,help='Input directory')
 	parser.add_argument('--output',required=True,type=str,help='Output directory')
+	parser.add_argument('--param:language',required=False,type=str,help='Ignored language parameter')
 	args = parser.parse_args()
 
 	assert os.path.isdir(args.input)
