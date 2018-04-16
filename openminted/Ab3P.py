@@ -25,7 +25,7 @@ if __name__ == '__main__':
 	deleteNonXMIFiles(args.input)
 
 	inputFormat = 'uimaxmi'
-	location = os.path.expanduser('~/Ab3P')
+	location = '/Ab3P'
 
 	sys.argv = ['pubrunner']
 	sys.argv += ['--defaultsettings']

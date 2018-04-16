@@ -25,7 +25,7 @@ if __name__ == '__main__':
 	deleteNonXMIFiles(args.input)
 
 	inputFormat = 'uimaxmi'
-	location = os.path.expanduser('~/OpenSesamIE')
+	location = '/OpenSesamIE'
 
 	sys.argv = ['pubrunner']
 	sys.argv += ['--defaultsettings']
