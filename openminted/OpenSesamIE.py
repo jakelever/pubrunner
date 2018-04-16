@@ -12,7 +12,7 @@ def deleteNonXMIFiles(directory):
 			os.remove(f)
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description='Main access point for OpenMinTeD Docker Ab3P application')
+	parser = argparse.ArgumentParser(description='Main access point for OpenMinTeD Docker OpenSesamIE application')
 	parser.add_argument('--input',required=True,type=str,help='Input directory')
 	parser.add_argument('--output',required=True,type=str,help='Output directory')
 	parser.add_argument('--param:language',required=False,type=str,help='Ignored language parameter')
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 	deleteNonXMIFiles(args.input)
 
 	inputFormat = 'uimaxmi'
-	location = os.path.expanduser('~/Ab3P')
+	location = os.path.expanduser('~/OpenSesamIE')
 
 	sys.argv = ['pubrunner']
 	sys.argv += ['--defaultsettings']
