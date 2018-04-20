@@ -19,7 +19,8 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	assert os.path.isdir(args.input)
-	assert os.path.isdir(args.output)
+	if not os.path.isdir(args.output):
+		os.makedirs(args.output)
 
 	# Remove non XMI files (e.g. PDFs, spec files, etc)
 	deleteNonXMIFiles(args.input)
