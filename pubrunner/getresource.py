@@ -12,6 +12,7 @@ import ftputil
 import tarfile
 import glob
 import json
+import requests
 
 def calcSHA256(filename):
 	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
@@ -92,6 +93,26 @@ def downloadHTTP(url,out,fileSuffixFilter=None):
 		if beforeHash == afterHash: # File hasn't changed so move the modified date back
 			os.utime(out,(timestamp,timestamp))
 
+def downloadZenodo(recordNumber,outputDirectory):
+	assert isinstance(recordNumber,int)
+
+	if not os.path.isdir(outputDirectory):
+		os.makedirs(outputDirectory)
+
+	ZENODO_URL = 'https://zenodo.org'
+	
+	headers = {"Content-Type": "application/json"}
+	r = requests.get(ZENODO_URL + '/api/records/%d' % recordNumber, json={}, headers=headers)
+
+	assert r.status_code == 200, 'Unable to download Zenodo record %d' % recordNumber
+
+	jsonResponse = r.json()
+	for f in jsonResponse['files']:
+		url = f['links']['self']
+		name = f['key']
+		out = os.path.join(outputDirectory,name)
+		download(url,out)
+
 def gunzip(source,dest,deleteSource=False):
 	timestamp = os.path.getmtime(source)
 	with gzip.open(source, 'rb') as f_in, open(dest, 'wb') as f_out:
@@ -154,6 +175,13 @@ def getResource(resource):
 			git.Repo.clone_from(resourceInfo["url"], thisResourceDir)
 		
 		#generateFileListing(thisResourceDir)
+
+		return thisResourceDir
+	elif resourceInfo['type'] == 'zenodo':
+		assert isinstance(resourceInfo['record'], int), 'The Zenodo record must be an integer'
+
+		print("  Starting Zenodo download...")
+		downloadZenodo(resourceInfo['record'],thisResourceDir)
 
 		return thisResourceDir
 	elif resourceInfo['type'] == 'remote':
