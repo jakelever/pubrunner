@@ -1,0 +1,22 @@
+name: NCBI_GENE
+type: remote
+url:
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene2accession.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene2ensembl.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene2go.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene2pubmed.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene2refseq.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene2sts
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene2unigene
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene2vega.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene_group.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene_history.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene_info.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene_neighbors.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene_orthologs.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/gene_refseq_uniprotkb_collab.gz
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/go_process.dtd
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/go_process.xml
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/mim2gene_medgen
+   - ftp://ftp.ncbi.nih.gov/gene/DATA/stopwords_gene
+unzip: True

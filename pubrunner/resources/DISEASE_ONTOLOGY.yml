@@ -1,3 +1,5 @@
 name: DISEASE_ONTOLOGY
-url: http://purl.obolibrary.org/obo/doid.obo
+url:
+   - https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/master/src/ontology/doid.obo
+   - https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/master/src/ontology/doid-non-classified.obo
 type: remote

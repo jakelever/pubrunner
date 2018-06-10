@@ -1,0 +1,4 @@
+name: METATHESAURUS_EMPTY
+type: remote
+url: http://bcgsc.ca/downloads/jlever/METATHESAURUS_EMPTY.tar.gz
+unzip: True
