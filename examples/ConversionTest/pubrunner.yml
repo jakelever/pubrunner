@@ -1,0 +1,12 @@
+name: ConversionTest
+version: 0.1
+url: https://github.com/jakelever/pubrunner/tree/master/examples/TextMiningCounter
+resources:
+   full:
+      - PUBMED:
+         format: bioc
+      - PMCOA:
+         format: bioc
+run:
+   - seq 100 > {OUT:done.txt}
+output: done.txt
