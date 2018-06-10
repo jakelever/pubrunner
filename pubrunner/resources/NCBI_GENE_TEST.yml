@@ -1,0 +1,4 @@
+name: NCBI_GENE_TEST
+type: remote
+url: http://bcgsc.ca/downloads/jlever/NCBI_GENE_TEST.tar.gz
+unzip: True
