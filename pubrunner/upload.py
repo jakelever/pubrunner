@@ -68,6 +68,9 @@ def pushToZenodo(outputList,toolSettings,globalSettings):
 	doiURL = "https://doi.org/" + doi
 	print("  Got provisional DOI: %s" % doiURL)
 
+	# https://github.com/zenodo/zenodo/issues/954
+	# /api/deposit/newversion?recid=134 vs /api/deposit/123/actions/newversion
+
 	print("  Adding files to Zenodo submission")
 	assert len(outputList) == 1, "Zenodo only accepted a single output file/directory at the moment"
 	if os.path.isdir(outputList[0]):
