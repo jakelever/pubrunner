@@ -13,6 +13,9 @@ import tarfile
 import glob
 import json
 import requests
+import datetime
+import time
+import re
 
 def calcSHA256(filename):
 	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
@@ -107,11 +110,23 @@ def downloadZenodo(recordNumber,outputDirectory):
 	assert r.status_code == 200, 'Unable to download Zenodo record %d' % recordNumber
 
 	jsonResponse = r.json()
+
+	updated = jsonResponse['updated']
+	updated = re.sub(':00$','00',updated)
+
+	updated_datetime = datetime.datetime.strptime(updated, "%Y-%m-%dT%H:%M:%S.%f%z")
+	timestamp = time.mktime(updated_datetime.timetuple())
+
 	for f in jsonResponse['files']:
 		url = f['links']['self']
 		name = f['key']
 		out = os.path.join(outputDirectory,name)
-		download(url,out)
+
+		doDownload = (not os.path.isfile(out)) or os.path.getmtime(out) < timestamp
+
+		if doDownload:
+			download(url,out)
+			os.utime(out,(timestamp,timestamp))
 
 def gunzip(source,dest,deleteSource=False):
 	timestamp = os.path.getmtime(source)
