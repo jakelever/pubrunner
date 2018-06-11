@@ -11,3 +11,4 @@ snakemake
 drmaa
 pyfiglet
 biopython
+markdown2

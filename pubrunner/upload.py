@@ -3,6 +3,7 @@ import os
 import shutil
 import requests
 import json
+import markdown2
 
 def pushToFTP(outputList,toolSettings,globalSettings):
 	FTP_ADDRESS = globalSettings["upload"]["ftp"]["url"]
@@ -44,6 +45,9 @@ def pushToLocalDirectory(outputList,toolSettings,globalSettings):
 			shutil.copytree(src,dst)
 
 def pushToZenodo(outputList,toolSettings,globalSettings):
+	for f in outputList:
+		assert os.path.isfile(f) or os.path.isdir(f), "Output (%s) was not found. It must be a file or directory." % f
+
 	if "sandbox" in globalSettings["upload"]["zenodo"] and globalSettings["upload"]["zenodo"]["sandbox"] == True:
 		ZENODO_URL = 'https://sandbox.zenodo.org'
 	else:
@@ -72,41 +76,45 @@ def pushToZenodo(outputList,toolSettings,globalSettings):
 	# /api/deposit/newversion?recid=134 vs /api/deposit/123/actions/newversion
 
 	print("  Adding files to Zenodo submission")
-	assert len(outputList) == 1, "Zenodo only accepted a single output file/directory at the moment"
+	if len(outputList) > 1:
+		for f in outputList:
+			assert not os.path.isdir(f), "If output includes a directory, it must be the only output"
+
+	# Replace output list with directory listing
 	if os.path.isdir(outputList[0]):
 		outputDir = outputList[0]
-		for f in os.listdir(outputDir):
-			src = os.path.join(outputDir, f)
-			if os.path.isfile(src):
-				r = requests.put('%s/%s' % (bucket_url,f),
-								data=open(src, 'rb'),
-								headers={"Accept":"application/json",
-								"Authorization":"Bearer %s" % ACCESS_TOKEN,
-								"Content-Type":"application/octet-stream"})
+		outputList = [ os.path.join(outputDir, f) for f in os.listdir(outputDir) ]
 
+	for f in outputList:
+		assert os.path.isfile(f), "Cannot upload non-file (%s) to Zenodo" % f
+		basename = os.path.basename(f)
 
-				assert r.status_code == 200, "Unable to add file to Zenodo submission (error: %d) " % r.status_code
-	elif os.path.isfile(outputList[0]):
-			f = outputList[0]
-			basename = os.path.basename(f)
-			assert os.path.isfile(f), "Could not access file (%d) for upload to Zenodo" % f
-			r = requests.put('%s/%s' % (bucket_url,basename),
-							data=open(f, 'rb'),
-							headers={"Accept":"application/json",
-							"Authorization":"Bearer %s" % ACCESS_TOKEN,
-							"Content-Type":"application/octet-stream"})
+		r = requests.put('%s/%s' % (bucket_url,basename),
+						data=open(f, 'rb'),
+						headers={"Accept":"application/json",
+						"Authorization":"Bearer %s" % ACCESS_TOKEN,
+						"Content-Type":"application/octet-stream"})
 
-			assert r.status_code == 200, "Unable to add file to Zenodo submission (error: %d) " % r.status_code
-	else:
-		raise RuntimeError("Unable to find file or directory (%s) to upload to Zenodo" % outputList[0])
+		assert r.status_code == 200, "Unable to add file to Zenodo submission (error: %d) " % r.status_code
 
+	description = 'Results from %s tool executed using PubRunner' % toolSettings['name']
+	if "output_description_file" in toolSettings:
+		output_description_file = toolSettings["output_description_file"]
+		assert os.path.isfile(output_description_file), "Unable to find output_description_file (%s)" % output_description_file
+		with open(output_description_file) as f:
+			description = f.read().strip()
+
+		if output_description_file.endswith('.md'):
+			description = markdown2.markdown(description)
+	elif "output_description" in toolSettings:
+		description = toolSettings["output_description"]
 
 	print("  Adding metadata to Zenodo submission")
 	data = {
 			'metadata': {
 					'title': toolSettings['name'],
 					'upload_type': 'dataset',
-					'description':	'Results from tool executed using PubRunner on MEDLINE corpus.',
+					'description':	description,
 					'creators': [{'name': ZENODO_AUTHOR,
 							'affiliation': ZENODO_AUTHOR_AFFILIATION}]
 			}
