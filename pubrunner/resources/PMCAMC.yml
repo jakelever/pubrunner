@@ -1,0 +1,11 @@
+name: PMCAMC
+type: remote
+url:
+   - ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/manuscript/PMC002XXXXXX.xml.tar.gz
+   - ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/manuscript/PMC003XXXXXX.xml.tar.gz
+   - ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/manuscript/PMC004XXXXXX.xml.tar.gz
+   - ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/manuscript/PMC005XXXXXX.xml.tar.gz
+format: pmcxml
+filter: .xml
+unzip: true
+chunkSize: 2000
