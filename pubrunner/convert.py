@@ -286,9 +286,39 @@ def processMedlineFile(pubmedFile):
 					name = collectivename.text
 				else:
 					raise RuntimeError("Unable to find authors in Pubmed citation (PMID=%s)" % pmid)
-
 				authors.append(name)
 
+			chemicals = []
+			chemicalElems = elem.findall('./MedlineCitation/ChemicalList/Chemical/NameOfSubstance')
+			for chemicalElem in chemicalElems:
+				chemID = chemicalElem.attrib['UI']
+				name = chemicalElem.text
+				#chemicals.append((chemID,name))
+				chemicals.append("%s|%s" % (chemID,name))
+			chemicalsTxt = "\t".join(chemicals)
+
+			meshHeadings = []
+			meshElems = elem.findall('./MedlineCitation/MeshHeadingList/MeshHeading')
+			for meshElem in meshElems:
+				descriptorElem = meshElem.find('./DescriptorName')
+				meshID = descriptorElem.attrib['UI']
+				majorTopicYN = descriptorElem.attrib['MajorTopicYN']
+				name = descriptorElem.text
+				#meshHeading = {'Descriptor':name,'MajorTopicYN':majorTopicYN,'ID':meshID,'Qualifiers':[]}
+				meshHeading = "Qualifier|%s|%s|%s" % (meshID,majorTopicYN,name)
+
+				qualifierElems = meshElem.findall('./QualifierName')
+				for qualifierElem in qualifierElems:
+					meshID = qualifierElem.attrib['UI']
+					majorTopicYN = qualifierElem.attrib['MajorTopicYN']
+					name = qualifierElem.text
+					qualifier = {'Descriptor':name,'MajorTopicYN':majorTopicYN,'ID':meshID}
+					#meshHeading['Qualifiers'].append(qualifier)
+					meshHeading += "%%Descriptor|%s|%s|%s" % (meshID,majorTopicYN,name)
+
+				meshHeadings.append(meshHeading)
+			meshHeadingsTxt = "\t".join(meshHeadings)
+					
 			# Extract the title of paper
 			title = elem.findall('./MedlineCitation/Article/ArticleTitle')
 			titleText = extractTextFromElemList(title)
@@ -319,6 +349,8 @@ def processMedlineFile(pubmedFile):
 			document["journal"] = journalTitle
 			document["journalISO"] = journalISOTitle
 			document["authors"] = authors
+			document["chemicals"] = chemicalsTxt
+			document["meshHeadings"] = meshHeadingsTxt
 
 			yield document
 		
@@ -474,6 +506,8 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 			biocDoc.infons['journal'] = pmDoc["journal"]
 			biocDoc.infons['journalISO'] = pmDoc["journalISO"]
 			biocDoc.infons['authors'] = ", ".join(pmDoc["authors"])
+			biocDoc.infons['chemicals'] = pmDoc['chemicals']
+			biocDoc.infons['meshHeadings'] = pmDoc['meshHeadings']
 	
 			offset = 0
 			for section in ["title","abstract"]:
