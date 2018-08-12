@@ -57,23 +57,63 @@ def pushToZenodo(outputList,toolSettings,globalSettings):
 	ZENODO_AUTHOR_AFFILIATION = globalSettings["upload"]["zenodo"]["authorAffiliation"]
 
 	ACCESS_TOKEN = globalSettings["upload"]["zenodo"]["token"]
-	
-	print("  Creating new Zenodo submission")
+
 	headers = {"Content-Type": "application/json"}
-	r = requests.post(ZENODO_URL + '/api/deposit/depositions',
-					params={'access_token': ACCESS_TOKEN}, json={},
-					headers=headers)
 
-	assert r.status_code == 201, "Unable to create Zenodo submission (error: %d) " % r.status_code
+	if "zenodo" in toolSettings:
+		existingZenodoID = int(toolSettings["zenodo"])
 
-	bucket_url = r.json()['links']['bucket']
-	deposition_id = r.json()['id']
-	doi = r.json()["metadata"]["prereserve_doi"]["doi"]
-	doiURL = "https://doi.org/" + doi
-	print("  Got provisional DOI: %s" % doiURL)
+		print("  Creating new version of Zenodo submission %d" % existingZenodoID)
 
-	# https://github.com/zenodo/zenodo/issues/954
-	# /api/deposit/newversion?recid=134 vs /api/deposit/123/actions/newversion
+		r = requests.get(ZENODO_URL + '/api/records/%d' % existingZenodoID, json={}, headers=headers)
+		assert r.status_code == 200, 'Unable to find existing Zenodo record %d to update' % existingZenodoID
+
+		# Update with the latest ID
+		existingZenodoID = r.json()['id']
+
+		# https://github.com/zenodo/zenodo/issues/954
+		# /api/deposit/newversion?recid=134 vs /api/deposit/123/actions/newversion
+
+		r = requests.post(ZENODO_URL + '/api/deposit/depositions/%d/actions/newversion' % existingZenodoID,
+							params={'access_token': ACCESS_TOKEN}, json={},
+							headers=headers)
+
+		assert r.status_code == 201, 'Unable to create new version of Zenodo record %d' % existingZenodoID
+
+		jsonResponse = r.json()
+		newversion_draft_url = r.json()['links']['latest_draft']
+		deposition_id = newversion_draft_url.split('/')[-1] 
+
+		r = requests.get(ZENODO_URL + '/api/deposit/depositions/%s' % deposition_id, params={'access_token':ACCESS_TOKEN})
+
+		assert r.status_code == 200, 'Unable to find Zenodo record %s' % deposition_id
+
+		bucket_url = r.json()['links']['bucket']
+		doi = r.json()["metadata"]["prereserve_doi"]["doi"]
+		doiURL = "https://doi.org/" + doi
+	
+		print("  Clearing old files from new version of %d" % existingZenodoID)
+		for f in r.json()['files']:
+			file_id = f['id']
+			r = requests.delete(ZENODO_URL + '/api/deposit/depositions/%s/files/%s' % (deposition_id,file_id), params={'access_token': ACCESS_TOKEN})
+
+			assert r.status_code == 204, 'Unable to clear old files in Zenodo record %s' % deposition_id
+
+		print("  Got provisional DOI: %s" % doiURL)
+	else:
+		print("  Creating new Zenodo submission")
+		r = requests.post(ZENODO_URL + '/api/deposit/depositions',
+						params={'access_token': ACCESS_TOKEN}, json={},
+						headers=headers)
+
+		assert r.status_code == 201, "Unable to create Zenodo submission (error: %d) " % r.status_code
+
+		bucket_url = r.json()['links']['bucket']
+		deposition_id = r.json()['id']
+		doi = r.json()["metadata"]["prereserve_doi"]["doi"]
+		doiURL = "https://doi.org/" + doi
+
+		print("  Got provisional DOI: %s" % doiURL)
 
 	print("  Adding files to Zenodo submission")
 	if len(outputList) > 1:
