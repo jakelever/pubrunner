@@ -210,7 +210,8 @@ def getJournalDateForMedlineFile(elem,pmid):
 
 	if not pubYear is None:
 		pubYear = int(pubYear)
-		assert pubYear > 1700 and pubYear < 2100, 'Error extracting publication year for PMID=%s' % pmid
+		if not (pubYear > 1700 and pubYear < 2100):
+			pubYear = None
 
 	if not pubMonth is None:
 		if pubMonth in monthMapping:
