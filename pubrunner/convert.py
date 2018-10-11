@@ -279,11 +279,14 @@ def processMedlineFile(pubmedFile):
 				lastname = authorElem.find('./LastName')
 				collectivename = authorElem.find('./CollectiveName')
 
-				if not forename is None and not lastname is None:
+				name = None
+				if forename is not None and lastname is not None and forename.text is not None and lastname.text is not None:
 					name = "%s %s" % (forename.text, lastname.text)
-				if not lastname is None:
+				elif lastname is not None and lastname.text is not None:
 					name = lastname.text
-				elif not collectivename is None:
+				elif forename is not None and forename.text is not None:
+					name = forename.text
+				elif collectivename is not None and collectivename.text is not None:
 					name = collectivename.text
 				else:
 					raise RuntimeError("Unable to find authors in Pubmed citation (PMID=%s)" % pmid)
