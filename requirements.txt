@@ -7,7 +7,7 @@ ftputil
 bioc
 future
 pymarc
-snakemake
+snakemake==5.1.5
 drmaa
 pyfiglet
 biopython
