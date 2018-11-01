@@ -5,6 +5,7 @@ wget
 requests
 ftputil
 bioc
+jsonlines
 future
 pymarc
 snakemake==5.1.5
