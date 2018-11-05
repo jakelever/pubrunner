@@ -42,42 +42,49 @@ def download(url,out,fileSuffixFilter=None):
 	else:
 		raise RuntimeError("Unsure how to download file. Expecting URL to start with ftp or http. Got: %s" % url)
 
-def downloadFTP(path,out,host,fileSuffixFilter=None):
-	if host.path.isfile(path):
-		remoteTimestamp = host.path.getmtime(path)
-		
-		doDownload = True
-		if not checkFileSuffixFilter(path,fileSuffixFilter):
-			doDownload = False
-
-		if os.path.isdir(out):
-			localTimestamp = os.path.getmtime(out)
-			if not remoteTimestamp > localTimestamp:
-				doDownload = False
-		if path.endswith('.gz'):
-			outUnzipped = out[:-3]
-			if os.path.isfile(outUnzipped):
-				localTimestamp = os.path.getmtime(outUnzipped)
-				if not remoteTimestamp > localTimestamp:
+def downloadFTP(path,out,host,fileSuffixFilter=None,tries=5):
+	for tryNo in range(tries):
+		try:
+			if host.path.isfile(path):
+				remoteTimestamp = host.path.getmtime(path)
+				
+				doDownload = True
+				if not checkFileSuffixFilter(path,fileSuffixFilter):
 					doDownload = False
-		if doDownload:
-			print("  Downloading %s" % path)
-			host.download(path,out)
-			os.utime(out,(remoteTimestamp,remoteTimestamp))
-		else:
-			print("  Skipping %s" % path)
 
-	elif host.path.isdir(path):
-		basename = host.path.basename(path)
-		newOut = os.path.join(out,basename)
-		if not os.path.isdir(newOut):
-			os.makedirs(newOut)
-		for child in host.listdir(path):
-			srcFilename = host.path.join(path,child)
-			dstFilename = os.path.join(newOut,child)
-			downloadFTP(srcFilename,dstFilename,host,fileSuffixFilter)
-	else:
-		raise RuntimeError("Path (%s) is not a file or directory" % path) 
+				if os.path.isdir(out):
+					localTimestamp = os.path.getmtime(out)
+					if not remoteTimestamp > localTimestamp:
+						doDownload = False
+				if path.endswith('.gz'):
+					outUnzipped = out[:-3]
+					if os.path.isfile(outUnzipped):
+						localTimestamp = os.path.getmtime(outUnzipped)
+						if not remoteTimestamp > localTimestamp:
+							doDownload = False
+				if doDownload:
+					print("  Downloading %s" % path)
+					host.download(path,out)
+					os.utime(out,(remoteTimestamp,remoteTimestamp))
+				else:
+					print("  Skipping %s" % path)
+
+			elif host.path.isdir(path):
+				basename = host.path.basename(path)
+				newOut = os.path.join(out,basename)
+				if not os.path.isdir(newOut):
+					os.makedirs(newOut)
+				for child in host.listdir(path):
+					srcFilename = host.path.join(path,child)
+					dstFilename = os.path.join(newOut,child)
+					downloadFTP(srcFilename,dstFilename,host,fileSuffixFilter)
+			else:
+				raise RuntimeError("Path (%s) is not a file or directory" % path) 
+
+			break
+		except ftputil.FTPOSERROR:
+			print("Try %d : Received FTPOSERROR" % (tryNo+1))
+			time.sleep(1)
 
 def downloadHTTP(url,out,fileSuffixFilter=None):
 	if not checkFileSuffixFilter(url,fileSuffixFilter):
