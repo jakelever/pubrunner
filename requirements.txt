@@ -4,7 +4,7 @@ pyyaml
 wget
 requests
 ftputil
-bioc
+bioc==1.2.2
 jsonlines
 future
 pymarc
