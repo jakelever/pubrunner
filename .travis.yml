@@ -6,6 +6,7 @@ install:
   - pip install python-coveralls
   - pip install --upgrade coverage
   - pip install .
+  - wget ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_package/9b/35/PMC5199186.tar.gz
 # command to run tests
 script:
   - coverage --version
