@@ -83,7 +83,8 @@ def downloadFTP(path,out,host,fileSuffixFilter=None,tries=5):
 
 			break
 		except ftputil.error.FTPOSError as e:
-			print("Try %d for %s : Received FTPOSError(%d,%s)" % (tryNo+1,path,e.errno,e.strerror))
+			errinfo = str(e.errno) + ' ' + str(e.strerror)
+			print("Try %d for %s : Received FTPOSError(%s)" % (tryNo+1,path,errinfo))
 			time.sleep(1)
 
 def downloadHTTP(url,out,fileSuffixFilter=None):
