@@ -82,8 +82,8 @@ def downloadFTP(path,out,host,fileSuffixFilter=None,tries=5):
 				raise RuntimeError("Path (%s) is not a file or directory" % path) 
 
 			break
-		except ftputil.error.FTPOSError:
-			print("Try %d for %s : Received FTPOSError" % (tryNo+1,path))
+		except ftputil.error.FTPOSError as e:
+			print("Try %d for %s : Received FTPOSError(%d,%s)" % (tryNo+1,path,e.errno,e.strerror))
 			time.sleep(1)
 
 def downloadHTTP(url,out,fileSuffixFilter=None):
