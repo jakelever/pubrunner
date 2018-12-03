@@ -1,0 +1,47 @@
+# Subsections
+
+This is a list of the possible subsection headings that are extracted from the full-text article section of the paper (where possible) and stored in the subsection metadata.
+
+- abbreviations
+- additional information
+- analysis
+- author contributions
+- authors' contributions
+- authors’ contributions
+- background
+- case report
+- competing interests
+- conclusion
+- conclusions
+- conflict of interest
+- conflicts of interest
+- consent
+- data analysis
+- data collection
+- discussion
+- ethics statement
+- funding
+- introduction
+- limitations
+- material and methods
+- materials
+- materials and methods
+- measures
+- method
+- methods
+- participants
+- patients and methods
+- pre-publication history
+- related literature
+- results
+- results and discussion
+- statistical analyses
+- statistical analysis
+- statistical methods
+- statistics
+- study design
+- summary
+- supplementary data
+- supplementary information
+- supplementary material
+- supporting information
