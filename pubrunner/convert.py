@@ -414,7 +414,7 @@ def processPMCFile(pmcFile):
 					backText = extractTextFromElemList(articleElem.findall('./back'))
 					floatingText = extractTextFromElemList(articleElem.findall('./floats-group'))
 					
-					document = {'pmid':subPmidText, 'pmcid':subPmcidText, 'doi':subDoiText, 'pubYear':subPubYear, 'pubMonth':subPubMonth, 'pubDay':subPubDay, 'journal':journal, 'journalISO':journalISO}
+					document = {'pmid':subPmidText, 'pmcid':subPmcidText, 'doi':subDoiText, 'pubYear':subPubYear, 'pubMonth':subPubMonth, 'pubDay':subPubDay, 'journal':subJournal, 'journalISO':subJournalISO}
 
 					textSources = {}
 					textSources['title'] = titleText
