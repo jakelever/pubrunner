@@ -6,14 +6,14 @@ import pubrunner
 
 def gatherPMIDs(inHashDir,outPMIDDir,whichHashes=None,pmidExclusions=None):
 	# Check the age of inHashDir files and outPMIDDir files and check if anything is actually needed
-	#if os.path.isdir(outPMIDDir):
-	#	inHashDir_modifieds = [ os.path.getmtime(os.path.join(root,f)) for root, dir, files in os.walk(inHashDir) for f in files ]
-	#	outPMIDDir_modifieds = [ os.path.getmtime(os.path.join(root,f)) for root, dir, files in os.walk(inHashDir) for f in files ]
+	if os.path.isdir(outPMIDDir):
+		inHashDir_modifieds = [ os.path.getmtime(os.path.join(root,f)) for root, dir, files in os.walk(inHashDir) for f in files ]
+		outPMIDDir_modifieds = [ os.path.getmtime(os.path.join(root,f)) for root, dir, files in os.walk(inHashDir) for f in files ]
 	#	print("max(inHashDir_modifieds)",max(inHashDir_modifieds))
-	#	print("min(outPMIDDir_modifieds)",min(outPMIDDir_modifieds))
-	#	if max(inHashDir_modifieds) < min(outPMIDDir_modifieds):
-	#		print("No PMID update necessary")
-	#		return
+	#	print("max(outPMIDDir_modifieds)",max(outPMIDDir_modifieds))
+		if max(inHashDir_modifieds) < max(outPMIDDir_modifieds):
+			print("No PMID update necessary")
+			return
 
 	files = sorted([ os.path.join(inHashDir,f) for f in os.listdir(inHashDir) ])
 	hashes = {}
