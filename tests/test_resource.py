@@ -1,18 +1,40 @@
 import pubrunner
+import tempfile
+import shutil
+import os
+import hashlib
 
-def test_download():
-	resource = pubrunner.Resource(sourceName='PUBMED_README')
-	resource.download()
+def calcSHA256(filename):
+	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
 
-	directory = resource.getDownloadDirectory()
+class TempDir:
+	def __init__(self):
+		pass
 
-	expectedMD5s = {}
-	for f in os.listdir(directory):
-		md5sum = calcMD5(os.path.join(directory,f))
-		assert f in expectedMD5s
-		assert md5sum == expectedMD5s[f]
+	def __enter__(self):
+		self.tempDir = tempfile.mkdtemp()
+		return self.tempDir
 
-def test_convert():
+	def __exit__(self, type, value, traceback):
+		shutil.rmtree(self.tempDir)
+
+def test_download_ftp():
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.ncbi.nlm.nih.gov/robots.txt')
+		resource.download()
+
+		directory = resource.downloadDirectory
+
+		expectedFileHashes = {'robots.txt':'331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1'}
+		for f in os.listdir(directory):
+			fileHash = calcSHA256(os.path.join(directory,f))
+			assert f in expectedFileHashes
+			assert fileHash == expectedFileHashes[f]
+
+def te_resourceByName():
+	resource = pubrunner.Resource.byName('PUBMED')
+
+def te_convert():
 	resource = pubrunner.Resource(sourceName='PUBMED_README',requiredFormat='biocxml')
 	resource.download()
 	resource.convert()
