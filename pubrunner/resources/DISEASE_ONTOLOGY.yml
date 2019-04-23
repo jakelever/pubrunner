@@ -1,5 +1,0 @@
-name: DISEASE_ONTOLOGY
-url:
-   - https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/master/src/ontology/doid.obo
-   - https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/master/src/ontology/doid-non-classified.obo
-type: remote
