@@ -1,7 +1,0 @@
-name: PMCOA_TESTFILE
-url:
-   - ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_package/9b/35/PMC5199186.tar.gz
-type: remote
-format: pmcxml
-filter: .nxml
-unzip: true
