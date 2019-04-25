@@ -56,6 +56,19 @@ def test_download_ftp():
 			assert f in expectedFileHashes
 			assert fileHash == expectedFileHashes[f]
 
+def test_download_zenodo():
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','https://zenodo.org/record/2643199')
+		resource.download()
+
+		directory = resource.downloadDirectory
+
+		expectedFileHashes = {'TheOpenAIREResearchGraphDataModel_v_1_3.pdf':'ed5a789f07091f86e8816d244a7593fa3aee4be67e585c0875983a4333527e71'}
+		for f in os.listdir(directory):
+			fileHash = calcSHA256(os.path.join(directory,f))
+			assert f in expectedFileHashes
+			assert fileHash == expectedFileHashes[f]
+
 def te_resourceByName():
 	resource = pubrunner.Resource.byName('PUBMED')
 

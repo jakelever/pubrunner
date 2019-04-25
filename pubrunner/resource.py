@@ -88,12 +88,11 @@ class Resource:
 
 				return thisResourceDir
 			elif url.startswith('https://zenodo.org/record/'):
-				assert isinstance(resourceInfo['record'], int), 'The Zenodo record must be an integer'
+				recordNo = int(url[len('https://zenodo.org/record/'):])
 
 				print("  Starting Zenodo download...")
-				downloadZenodo(resourceInfo['record'],thisResourceDir)
+				pubrunner.download.downloadZenodo(recordNo,self.downloadDirectory)
 
-				return thisResourceDir
 			else:
 				#if 'filter' in resourceInfo:
 				#	fileSuffixFilter = resourceInfo['filter']
