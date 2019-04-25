@@ -74,6 +74,28 @@ def test_download_zenodo():
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
 		assert expectedFileHashes == fileHashes
 
+def test_download_pubmed_single():
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','https://www.ncbi.nlm.nih.gov/pubmed/27251290',email='jlever@bcgsc.ca')
+		resource.download()
+
+		directory = resource.downloadDirectory
+
+		expectedFileHashes = {'pubmed_27251290.xml': 'fccbe19b697c9bde4456ff13da9d209468d5125cdef09066f9cb7ff429c892e8'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+
+def test_download_pmc_single():
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','https://www.ncbi.nlm.nih.gov/pmc/4067548',email='jlever@bcgsc.ca')
+		resource.download()
+
+		directory = resource.downloadDirectory
+
+		expectedFileHashes = {'pmc_4067548.nxml': '2fcca2820988f38a3da91f32c93973dd4aad0da447b9e31cd90b8758f9204442'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+
 def te_resourceByName():
 	resource = pubrunner.Resource.byName('PUBMED')
 
