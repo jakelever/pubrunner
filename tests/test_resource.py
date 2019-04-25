@@ -96,6 +96,17 @@ def test_download_pmc_single():
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
 		assert expectedFileHashes == fileHashes
 
+def test_download_github():
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','https://github.com/jakelever/tree2maze')
+		resource.download()
+
+		directory = resource.downloadDirectory
+
+		expectedFileHashes = {'README.md': '114643d3eeef9ac93d1d6409a17edf58d95ededdd22324663db8a7939a2ef9bd', '.gitignore': '63e7ffd5caa49c46ef4c9cf01640102328e6b176d07b33ec2315c93a983c6b84', 'tree2maze.py': '6e47862ef148e650301c15d06e5c7babe3b73c6f5dbd1200185a59bfce6d62e6', 'example_with_text.png': '69e4088a2e30e5951c4010231ea5a86ca5617e1d025aa0cd4c7d37150cf66d72', 'example_tree.tsv': '8b7bf40122c65b069d90b90d221ae5cca12d175a86ddd37cfc21f98c7372755e'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory,f)) }
+		assert expectedFileHashes == fileHashes
+
 def te_resourceByName():
 	resource = pubrunner.Resource.byName('PUBMED')
 

@@ -1,6 +1,7 @@
 
 import os
 from Bio import Entrez
+import git
 
 import pubrunner.download
 
@@ -55,15 +56,14 @@ class Resource:
 				filename = os.path.join(self.downloadDirectory,'pmc_%d.nxml' % pmcid)
 				eutilsToFile(self.email,'pmc',pmcid,filename)
 			elif url.startswith('https://github.com'):
-				assert isinstance(resourceInfo['url'], six.string_types), 'The URL for a git resource must be a single address'
-
-				if os.path.isdir(thisResourceDir):
+				#try:
 					# Assume it is an existing git repo
-					repo = git.Repo(thisResourceDir)
-					repo.remote().pull()
-				else:
-					os.makedirs(thisResourceDir)
-					git.Repo.clone_from(resourceInfo["url"], thisResourceDir)
+				#	repo = git.Repo(thisResourceDir)
+				#	repo.remote().pull()
+				#except:
+				#	pass
+
+				git.Repo.clone_from(url, self.downloadDirectory)
 			
 			elif url.startswith('https://zenodo.org/record/'):
 				recordNo = int(url[len('https://zenodo.org/record/'):])
