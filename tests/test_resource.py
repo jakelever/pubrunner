@@ -26,10 +26,9 @@ def test_download_http():
 		directory = resource.downloadDirectory
 
 		expectedFileHashes = {'index.html':'dee5056021025e6fcd5d06183c4f72b289caa88e05ffdeb364a05ab2d28fd10f'}
-		for f in os.listdir(directory):
-			fileHash = calcSHA256(os.path.join(directory,f))
-			assert f in expectedFileHashes
-			assert fileHash == expectedFileHashes[f]
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+
 def test_download_https():
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
 		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','https://raw.githubusercontent.com/Linuxbrew/brew/master/README.md')
@@ -38,10 +37,8 @@ def test_download_https():
 		directory = resource.downloadDirectory
 
 		expectedFileHashes = {'README.md':'8267267c8f7a2abefbfe37c81f75dbfa68682d200d2cb547a3c0bf1a4a7f7fd8'}
-		for f in os.listdir(directory):
-			fileHash = calcSHA256(os.path.join(directory,f))
-			assert f in expectedFileHashes
-			assert fileHash == expectedFileHashes[f]
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
 
 def test_download_ftp():
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
@@ -51,10 +48,8 @@ def test_download_ftp():
 		directory = resource.downloadDirectory
 
 		expectedFileHashes = {'robots.txt':'331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1'}
-		for f in os.listdir(directory):
-			fileHash = calcSHA256(os.path.join(directory,f))
-			assert f in expectedFileHashes
-			assert fileHash == expectedFileHashes[f]
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
 
 def test_download_zenodo():
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
@@ -64,10 +59,8 @@ def test_download_zenodo():
 		directory = resource.downloadDirectory
 
 		expectedFileHashes = {'TheOpenAIREResearchGraphDataModel_v_1_3.pdf':'ed5a789f07091f86e8816d244a7593fa3aee4be67e585c0875983a4333527e71'}
-		for f in os.listdir(directory):
-			fileHash = calcSHA256(os.path.join(directory,f))
-			assert f in expectedFileHashes
-			assert fileHash == expectedFileHashes[f]
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
 
 def te_resourceByName():
 	resource = pubrunner.Resource.byName('PUBMED')
