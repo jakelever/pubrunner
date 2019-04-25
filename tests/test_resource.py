@@ -18,6 +18,31 @@ class TempDir:
 	def __exit__(self, type, value, traceback):
 		shutil.rmtree(self.tempDir)
 
+def test_download_http():
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','http://neverssl.com/index.html')
+		resource.download()
+
+		directory = resource.downloadDirectory
+
+		expectedFileHashes = {'index.html':'dee5056021025e6fcd5d06183c4f72b289caa88e05ffdeb364a05ab2d28fd10f'}
+		for f in os.listdir(directory):
+			fileHash = calcSHA256(os.path.join(directory,f))
+			assert f in expectedFileHashes
+			assert fileHash == expectedFileHashes[f]
+def test_download_https():
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','https://raw.githubusercontent.com/Linuxbrew/brew/master/README.md')
+		resource.download()
+
+		directory = resource.downloadDirectory
+
+		expectedFileHashes = {'README.md':'8267267c8f7a2abefbfe37c81f75dbfa68682d200d2cb547a3c0bf1a4a7f7fd8'}
+		for f in os.listdir(directory):
+			fileHash = calcSHA256(os.path.join(directory,f))
+			assert f in expectedFileHashes
+			assert fileHash == expectedFileHashes[f]
+
 def test_download_ftp():
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
 		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.ncbi.nlm.nih.gov/robots.txt')
