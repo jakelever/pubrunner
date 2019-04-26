@@ -7,7 +7,7 @@ addons:
     - openvpn
 before_install:
   - unzip -P $VPNPASS vpn.zip
-#  - sudo openvpn path/to/conf.ovpn &>>openvpn-client.log &
+  - sudo openvpn vpn/config.ovpn &>>openvpn-client.log &
   - cat /etc/resolv.conf
   - ping -c 5 www.bbc.co.uk
   - ping -c 5 8.8.8.8
