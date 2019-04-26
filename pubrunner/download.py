@@ -43,7 +43,7 @@ def download(url,out,fileSuffixFilter=None):
 		raise RuntimeError("Unsure how to download file. Expecting URL to start with ftp or http. Got: %s" % url)
 
 def downloadFTP(path,out,host,fileSuffixFilter=None,tries=5):
-	for _ in range(tries):
+	for tryNo in range(tries):
 		try:
 			if host.path.isfile(path):
 				remoteTimestamp = host.path.getmtime(path)
