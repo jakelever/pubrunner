@@ -34,15 +34,16 @@ def download(url,out,fileSuffixFilter=None):
 		url = url.replace("ftp://","")
 		hostname = url.split('/')[0]
 		path = "/".join(url.split('/')[1:])
-		with ftputil.FTPHost(hostname, 'anonymous', 'secret') as host:
-			downloadFTP(path,out,host,fileSuffixFilter)
+		host = ftputil.FTPHost(hostname, 'anonymous', 'secret')
+		downloadFTP(path,out,host,fileSuffixFilter)
+		host.close()
 	elif url.startswith('http'):
 		downloadHTTP(url,out,fileSuffixFilter)
 	else:
 		raise RuntimeError("Unsure how to download file. Expecting URL to start with ftp or http. Got: %s" % url)
 
 def downloadFTP(path,out,host,fileSuffixFilter=None,tries=5):
-	for tryNo in range(tries):
+	for _ in range(tries):
 		try:
 			if host.path.isfile(path):
 				remoteTimestamp = host.path.getmtime(path)
@@ -85,6 +86,7 @@ def downloadFTP(path,out,host,fileSuffixFilter=None,tries=5):
 			errinfo = str(e.errno) + ' ' + str(e.strerror)
 			print("Try %d for %s : Received FTPOSError(%s)" % (tryNo+1,path,errinfo))
 			time.sleep(1)
+			host = ftputil.FTPHost(hostname, 'anonymous', 'secret')
 
 def downloadHTTP(url,out,fileSuffixFilter=None):
 	if not checkFileSuffixFilter(url,fileSuffixFilter):
