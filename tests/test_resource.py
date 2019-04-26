@@ -53,23 +53,23 @@ def test_download_urls():
 
 def test_download_ftp():
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
-		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.ncbi.nlm.nih.gov/robots.txt')
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.cs.brown.edu/pub/README')
 		resource.download()
 
 		directory = resource.downloadDirectory
 
-		expectedFileHashes = {'robots.txt':'331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1'}
+		expectedFileHashes = {'README':'b409ee099964d02ae160358077c87f74687565eb313bbf6dd98fee1062f97474'}
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
 		assert expectedFileHashes == fileHashes
 
 def test_download_ftp_dir():
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
-		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.ncbi.nlm.nih.gov/pub/GeneTests/')
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.cs.brown.edu/pub/arpa/')
 		resource.download()
 
 		directory = resource.downloadDirectory
 
-		expectedFileHashes = {'README.html': '8063908d0dd4ae7274cd0df055c6b19f37f33e343969e4aed613ace9f6854fd8', 'disease_OMIM.txt': 'f090e0530f126171fe5c8df4265a1907c07c58abb99ee910820c26571e1775e0', 'disease_OMIM_Gene_NonUS.txt': '9a2d74df33015fd47031af90f708de90f0dce4d7fbe7deaf0fe02f4156eb5b47', 'disease_OMIM_Gene_US.txt': '85be0b7b983ba2ce2871c886bd4686ab2add5b2d6eca4d0abb320bd593ba75dd', 'disease_hierarchy.txt': '5b979a2c409049d3e1b13840addb3b69eed9ad996c1bb0978f1cabaddf47cc81', 'data_to_build_custom_reports.txt': '7fbc28bbd1eec9a154af30f4bef2dda46dea0a6ea1228e7e66391e91ad2f8ceb'}
+		expectedFileHashes = {'A8225_pic.gif': '164b32e4023d1449305c4b3ed54af8ed578cc0e6fa471a8313a266f64e55abb8', 'A8225_sched.gif': '61214169047dce8d9a49c87f45e3ccfdab012d269a9c88c266f9878339ca9ac1'}
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
 		print(fileHashes)
 		assert expectedFileHashes == fileHashes
