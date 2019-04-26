@@ -34,15 +34,16 @@ def download(url,out,fileSuffixFilter=None):
 		url = url.replace("ftp://","")
 		hostname = url.split('/')[0]
 		path = "/".join(url.split('/')[1:])
-		host = ftputil.FTPHost(hostname, 'anonymous', 'secret')
-		downloadFTP(path,out,host,fileSuffixFilter)
-		host.close()
+		downloadFTP(path,out,hostname,fileSuffixFilter=fileSuffixFilter)
 	elif url.startswith('http'):
 		downloadHTTP(url,out,fileSuffixFilter)
 	else:
 		raise RuntimeError("Unsure how to download file. Expecting URL to start with ftp or http. Got: %s" % url)
 
-def downloadFTP(path,out,host,fileSuffixFilter=None,tries=5):
+def downloadFTP(path,out,hostname,host=None,fileSuffixFilter=None,tries=5):
+	if host is None:
+		host = ftputil.FTPHost(hostname, 'anonymous', 'secret')
+	
 	for tryNo in range(tries):
 		try:
 			if host.path.isfile(path):
@@ -77,7 +78,7 @@ def downloadFTP(path,out,host,fileSuffixFilter=None,tries=5):
 				for child in host.listdir(path):
 					srcFilename = host.path.join(path,child)
 					dstFilename = os.path.join(newOut,child)
-					downloadFTP(srcFilename,dstFilename,host,fileSuffixFilter)
+					downloadFTP(srcFilename,dstFilename,hostname,host=host,fileSuffixFilter=fileSuffixFilter)
 			else:
 				raise RuntimeError("Path (%s) is not a file or directory" % path) 
 
