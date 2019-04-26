@@ -5,7 +5,11 @@ addons:
   apt:
     packages:
     - openvpn
-before_install:
+install:
+  - pip install pytest coverage 
+  - pip install python-coveralls
+  - pip install --upgrade coverage
+  - pip install .
   - curl icanhazip.com
   - unzip -jP $VPNPASS vpn.zip
   - sudo openvpn config.ovpn &>>openvpn-client.log &
@@ -13,12 +17,6 @@ before_install:
   - ping -c 5 www.bbc.co.uk
   - ping -c 5 8.8.8.8
   - curl icanhazip.com
-install:
-  - stopitrighthere
-  - pip install pytest coverage 
-  - pip install python-coveralls
-  - pip install --upgrade coverage
-  - pip install .
 script:
   - coverage --version
   - python --version
