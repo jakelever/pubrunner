@@ -8,6 +8,8 @@ addons:
 before_install:
   - unzip -P $VPNPASS vpn.zip
 #  - sudo openvpn path/to/conf.ovpn &>>openvpn-client.log &
+  - ping www.bbc.co.uk
+  - ping 8.8.8.8
 install:
   - pip install pytest coverage 
   - pip install python-coveralls
