@@ -118,6 +118,26 @@ def test_download_github():
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory,f)) }
 		assert expectedFileHashes == fileHashes
 
+def test_update_http():
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		directory = os.path.join(allResourcesDirectory,'test')
+		os.makedirs(directory)
+		with open(os.path.join(directory,'index.html'),'w') as f:
+			f.write("\n".join(map(str,range(1000))))
+		
+		expectedFileHashes = {'index.html':'cdcaf63295eb44b199f8945bea9040fc067d26c0af90e23fefc77367534bc75e'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','http://neverssl.com/index.html')
+		resource.download()
+
+		assert directory == resource.downloadDirectory
+
+		expectedFileHashes = {'index.html':'dee5056021025e6fcd5d06183c4f72b289caa88e05ffdeb364a05ab2d28fd10f'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+
 def te_resourceByName():
 	resource = pubrunner.Resource.byName('PUBMED')
 

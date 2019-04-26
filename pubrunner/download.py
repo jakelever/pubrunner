@@ -94,12 +94,12 @@ def downloadHTTP(url,out,fileSuffixFilter=None):
 
 	if fileAlreadyExists:
 		timestamp = os.path.getmtime(out)
-		beforeHash = pubrunner.calcSHA256(out)
+		beforeHash = calcSHA256(out)
 		os.unlink(out)
 
 	wget.download(url,out,bar=None)
 	if fileAlreadyExists:
-		afterHash = pubrunner.calcSHA256(out)
+		afterHash = calcSHA256(out)
 		if beforeHash == afterHash: # File hasn't changed so move the modified date back
 			os.utime(out,(timestamp,timestamp))
 
