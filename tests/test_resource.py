@@ -121,6 +121,7 @@ def test_download_github():
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory,f)) }
 		assert expectedFileHashes == fileHashes
 
+@pytest.mark.skipif(os.environ.get('TRAVIS', 'false') == 'true', reason="Travis-CI doesn't support FTP")
 def test_update_http():
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
 		directory = os.path.join(allResourcesDirectory,'test')
@@ -138,6 +139,52 @@ def test_update_http():
 		assert directory == resource.downloadDirectory
 
 		expectedFileHashes = {'index.html':'dee5056021025e6fcd5d06183c4f72b289caa88e05ffdeb364a05ab2d28fd10f'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+
+@pytest.mark.skipif(os.environ.get('TRAVIS', 'false') == 'true', reason="Travis-CI doesn't support FTP")
+def test_update_ftp():
+	# Create an ancient file, and check that the download overwrites it
+
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		directory = os.path.join(allResourcesDirectory,'test')
+		os.makedirs(directory)
+		with open(os.path.join(directory,'README'),'w') as f:
+			f.write("\n".join(map(str,range(1000))))
+		remoteTimestamp = 1
+		os.utime(os.path.join(directory,'README'),(remoteTimestamp,remoteTimestamp))
+		
+		expectedFileHashes = {'README':'cdcaf63295eb44b199f8945bea9040fc067d26c0af90e23fefc77367534bc75e'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.cs.brown.edu/pub/README')
+		resource.download()
+
+		assert directory == resource.downloadDirectory
+
+		expectedFileHashes = {'README':'b409ee099964d02ae160358077c87f74687565eb313bbf6dd98fee1062f97474'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+
+def test_noupdate_ftp():
+	# Create a brand new file and check that the download doesn't overwite it
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		directory = os.path.join(allResourcesDirectory,'test')
+		os.makedirs(directory)
+		with open(os.path.join(directory,'README'),'w') as f:
+			f.write("\n".join(map(str,range(1000))))
+		
+		expectedFileHashes = {'README':'cdcaf63295eb44b199f8945bea9040fc067d26c0af90e23fefc77367534bc75e'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.cs.brown.edu/pub/README')
+		resource.download()
+
+		assert directory == resource.downloadDirectory
+
+		expectedFileHashes = {'README':'cdcaf63295eb44b199f8945bea9040fc067d26c0af90e23fefc77367534bc75e'}
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
 		assert expectedFileHashes == fileHashes
 

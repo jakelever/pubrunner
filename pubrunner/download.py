@@ -53,10 +53,12 @@ def downloadFTP(path,out,hostname,host=None,fileSuffixFilter=None,tries=5):
 				if not checkFileSuffixFilter(path,fileSuffixFilter):
 					doDownload = False
 
-				if os.path.isdir(out):
+				if os.path.isfile(out):
 					localTimestamp = os.path.getmtime(out)
+					print(localTimestamp, remoteTimestamp)
 					if not remoteTimestamp > localTimestamp:
 						doDownload = False
+
 				if path.endswith('.gz'):
 					outUnzipped = out[:-3]
 					if os.path.isfile(outUnzipped):
