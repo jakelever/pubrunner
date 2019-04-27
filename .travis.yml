@@ -16,13 +16,14 @@ install:
 #  - sudo openvpn --config config.ovpn --daemon
 #  - sudo sh vpnWait.sh
 #  - sleep 10
-#  - ping -c 5 8.8.8.8
-#  - ping -c 5 www.bbc.co.uk
-#  - curl icanhazip.com
+
   - seq 10000000 > /dev/null
   - pip install pytest coverage 
   - pip install python-coveralls
   - pip install --upgrade coverage
+  - ping -c 5 8.8.8.8
+  - ping -c 5 www.bbc.co.uk
+  - curl icanhazip.com
 
 #  - pip install .
 
