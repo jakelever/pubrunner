@@ -15,13 +15,16 @@ install:
 #  - sudo openvpn --config config.ovpn --daemon
   - sudo openvpn config.ovpn &>>openvpn-client.log &
   - sudo sh vpnWait.sh
-  - sudo ls -l /etc/resolv.conf
-  - sudo lsattr /etc/resolv.conf
-  - sudo chattr -i /etc/resolv.conf
-  - sudo echo "nameserver 8.8.8.8" > /etc/resolv.conf
+#  - sudo ls -l /etc/resolv.conf
+#  - sudo lsattr /etc/resolv.conf
+#  - sudo chattr -i /etc/resolv.conf
+#- sudo echo "nameserver 8.8.8.8" > /etc/resolv.conf
+  - sudo echo "nameserver 8.8.8.8" >> /etc/resolvconf/resolv.conf.d/base
+  - sudo echo "nameserver 8.8.4.4" >> /etc/resolvconf/resolv.conf.d/head
+  - sudo resolvconf -u
   - cat /etc/resolv.conf
-  - ping -c 5 www.bbc.co.uk
   - ping -c 5 8.8.8.8
+  - ping -c 5 www.bbc.co.uk
   - curl icanhazip.com
 script:
   - coverage --version
