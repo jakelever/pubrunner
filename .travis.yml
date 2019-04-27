@@ -46,3 +46,6 @@ script:
   - coverage run --branch -m pytest -v && coverage report -m
 after_success:
   - coveralls
+after_failure:
+  - sleep 10
+
