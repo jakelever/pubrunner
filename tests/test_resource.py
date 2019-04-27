@@ -4,6 +4,7 @@ import shutil
 import os
 import hashlib
 import pytest
+import wget
 
 def calcSHA256(filename):
 	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
@@ -167,6 +168,31 @@ def test_update_ftp():
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
 		assert expectedFileHashes == fileHashes
 
+def test_noupdate_http():
+	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
+		directory = os.path.join(allResourcesDirectory,'test')
+		os.makedirs(directory)
+		wget.download('http://neverssl.com/index.html', os.path.join(directory,'index.html'), bar=None)
+		
+		expectedFileHashes = {'index.html':'dee5056021025e6fcd5d06183c4f72b289caa88e05ffdeb364a05ab2d28fd10f'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+		beforeTimestamp = 1
+		os.utime(os.path.join(directory,'index.html'),(beforeTimestamp,beforeTimestamp))
+
+		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','http://neverssl.com/index.html')
+		resource.download()
+
+		assert directory == resource.downloadDirectory
+
+		expectedFileHashes = {'index.html':'dee5056021025e6fcd5d06183c4f72b289caa88e05ffdeb364a05ab2d28fd10f'}
+		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
+		assert expectedFileHashes == fileHashes
+		afterTimestamp = os.path.getmtime(os.path.join(directory,'index.html'))
+
+		assert beforeTimestamp == afterTimestamp
+
+@pytest.mark.skipif(os.environ.get('TRAVIS', 'false') == 'true', reason="Travis-CI doesn't support FTP")
 def test_noupdate_ftp():
 	# Create a brand new file and check that the download doesn't overwite it
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
