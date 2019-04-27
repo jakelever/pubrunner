@@ -3,6 +3,7 @@ import tempfile
 import shutil
 import os
 import hashlib
+import pytest
 
 def calcSHA256(filename):
 	return hashlib.sha256(open(filename, 'rb').read()).hexdigest()
@@ -51,6 +52,7 @@ def test_download_urls():
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
 		assert expectedFileHashes == fileHashes
 
+@pytest.mark.skipif(os.environ.get('TRAVIS', 'False') == 'True', reason="Travis-CI doesn't support FTP")
 def test_download_ftp():
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
 		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.cs.brown.edu/pub/README')
@@ -62,6 +64,7 @@ def test_download_ftp():
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
 		assert expectedFileHashes == fileHashes
 
+@pytest.mark.skipif(os.environ.get('TRAVIS', 'False') == 'True', reason="Travis-CI doesn't support FTP")
 def test_download_ftp_dir():
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
 		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.cs.brown.edu/pub/arpa/')
