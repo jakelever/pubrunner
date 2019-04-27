@@ -7,6 +7,7 @@ addons:
     - openvpn
 
 install:
+
   - curl icanhazip.com
 #  - rm vpn.zip
   - unzip -jP $VPNPASS vpn.zip
@@ -14,13 +15,15 @@ install:
   - sudo openvpn config.ovpn &>>openvpn-client.log &
 #  - sudo openvpn --config config.ovpn --daemon
 #  - sudo sh vpnWait.sh
-  - sleep 10
-  - ping -c 5 8.8.8.8
-  - ping -c 5 www.bbc.co.uk
-  - curl icanhazip.com
+#  - sleep 10
+#  - ping -c 5 8.8.8.8
+#  - ping -c 5 www.bbc.co.uk
+#  - curl icanhazip.com
+  - seq 10000000 > /dev/null
   - pip install pytest coverage 
   - pip install python-coveralls
   - pip install --upgrade coverage
+
 #  - pip install .
 
 #  - sudo ls -l /etc/resolv.conf
