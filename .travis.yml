@@ -8,8 +8,8 @@ addons:
 
 before_install:
   - curl icanhazip.com
-  - rm vpn.zip
-  - wget http://bcgsc.ca/downloads/jlever/vpn.zip
+#  - rm vpn.zip
+#  - wget http://bcgsc.ca/downloads/jlever/vpn.zip
   - unzip -jP simple vpn.zip
 #  - unzip -jP $VPNPASS vpn.zip
 #  - sudo openvpn --config config.ovpn --daemon
