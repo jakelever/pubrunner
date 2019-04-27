@@ -15,6 +15,7 @@ install:
 #  - sudo openvpn --config config.ovpn --daemon
   - sudo openvpn config.ovpn &>>openvpn-client.log &
   - sudo sh vpnWait.sh
+  - sudo ls -l /etc/resolv.conf
   - sudo lsattr /etc/resolv.conf
   - sudo chattr -i /etc/resolv.conf
   - sudo echo "nameserver 8.8.8.8" > /etc/resolv.conf
