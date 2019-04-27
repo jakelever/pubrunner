@@ -10,7 +10,8 @@ do
 
 	#if grep -q "Initialization Sequence Completed" /var/log/openvpn.log; then
 	if grep -q "/sbin/ip addr add dev" /var/log/openvpn.log; then
-		sleep 5
+		echo "Let's wait a sec and see what's what"
+		sleep 6
 		exit 0
 	fi
 	sleep 5
