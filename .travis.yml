@@ -23,7 +23,7 @@ install:
   - sudo ls -l /etc/resolvconf/resolv.conf.d/head
   - sudo lsattr /etc/resolvconf/resolv.conf.d/base
   - sudo lsattr /etc/resolvconf/resolv.conf.d/head
-  - sudo echo "nameserver 8.8.8.8" >> /etc/resolvconf/resolv.conf.d/base
+#  - sudo echo "nameserver 8.8.8.8" >> /etc/resolvconf/resolv.conf.d/base
   - sudo echo "nameserver 8.8.4.4" >> /etc/resolvconf/resolv.conf.d/head
   - sudo resolvconf -u
   - cat /etc/resolv.conf
