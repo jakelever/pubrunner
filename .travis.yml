@@ -13,7 +13,7 @@ install:
   - unzip -jP $VPNPASS vpn.zip
 #  - sudo openvpn --config config.ovpn --daemon
 #  - sudo openvpn config.ovpn &>>openvpn-client.log &
-  - sudo openvpn --config config.ovpn --daemon
+#  - sudo openvpn --config config.ovpn --daemon
 #  - sudo sh vpnWait.sh
 #  - sleep 10
 
