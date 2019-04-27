@@ -64,7 +64,7 @@ def test_download_ftp():
 		fileHashes = { f:calcSHA256(os.path.join(directory,f)) for f in os.listdir(directory) }
 		assert expectedFileHashes == fileHashes
 
-@pytest.mark.skipif(os.environ.get('TRAVIS', 'False') == 'True', reason="Travis-CI doesn't support FTP")
+@pytest.mark.skipif(os.environ.get('TRAVIS', 'false') == 'true', reason="Travis-CI doesn't support FTP")
 def test_download_ftp_dir():
 	with TempDir() as allResourcesDirectory, TempDir() as workingDirectory:
 		resource = pubrunner.Resource(allResourcesDirectory,workingDirectory,'test','ftp://ftp.cs.brown.edu/pub/arpa/')
