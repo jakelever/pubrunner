@@ -10,6 +10,8 @@ install:
   - curl icanhazip.com
 #  - rm vpn.zip
 #  - wget http://bcgsc.ca/downloads/jlever/vpn.zip
+  - pwd
+  - ls -l
   - unzip -jP simple vpn.zip
 #  - unzip -jP $VPNPASS vpn.zip
 #  - sudo openvpn --config config.ovpn --daemon
