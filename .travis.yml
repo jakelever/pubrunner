@@ -7,8 +7,8 @@ addons:
     - openvpn
 install:
   - pip install pytest coverage 
-#  - pip install python-coveralls
-#  - pip install --upgrade coverage
+  - pip install python-coveralls
+  - pip install --upgrade coverage
 #  - pip install .
   - curl icanhazip.com
   - unzip -jP $VPNPASS vpn.zip
