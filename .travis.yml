@@ -11,8 +11,8 @@ install:
 #  - rm vpn.zip
   - unzip -jP $VPNPASS vpn.zip
 #  - sudo openvpn --config config.ovpn --daemon
-#  - sudo openvpn config.ovpn &>>openvpn-client.log &
-  - sudo openvpn --config config.ovpn --daemon
+  - sudo openvpn config.ovpn &>>openvpn-client.log &
+#  - sudo openvpn --config config.ovpn --daemon
   - sudo sh vpnWait.sh
   - ping -c 5 8.8.8.8
   - ping -c 5 www.bbc.co.uk
