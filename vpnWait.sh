@@ -12,11 +12,11 @@ do
 	if grep -q "/sbin/ip addr add dev" /var/log/openvpn.log; then
 		echo "Let's wait a sec and see what's what"
 		sleep 6
-		exit 0
+		break
 	fi
 	sleep 5
 done
 
-echo "ERROR: VPN doesn't seem to have initialized"
-exit 1
+#echo "ERROR: VPN doesn't seem to have initialized"
+#exit 1
 
