@@ -9,7 +9,7 @@ addons:
 install:
   - curl icanhazip.com
 #  - rm vpn.zip
-#  - wget http://bcgsc.ca/downloads/jlever/vpn.zip
+  - wget http://bcgsc.ca/downloads/jlever/vpn.zip
   - pwd
   - ls -l
   - unzip -jP simple vpn.zip
