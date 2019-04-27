@@ -13,6 +13,10 @@ install:
   - curl icanhazip.com
   - unzip -jP $VPNPASS vpn.zip
 #  - sudo openvpn --config config.ovpn --daemon
+  - sudo ls -l /etc/openvpn/update-resolv-conf
+  - echo "script-security 2" >> config.ovpn
+  - echo "up /etc/openvpn/update-resolv-conf" >> config.ovpn
+  - echo "down /etc/openvpn/update-resolv-conf" >> config.ovpn
   - sudo openvpn config.ovpn &>>openvpn-client.log &
   - sudo sh vpnWait.sh
 #  - sudo ls -l /etc/resolv.conf
