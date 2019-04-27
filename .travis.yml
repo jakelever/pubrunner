@@ -7,7 +7,7 @@ addons:
     - openvpn
 
 install:
-
+  - env
   - curl icanhazip.com
 #  - rm vpn.zip
   - unzip -jP $VPNPASS vpn.zip
