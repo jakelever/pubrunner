@@ -17,7 +17,8 @@ install:
 #  - sudo sh vpnWait.sh
 #  - sleep 10
 
-  - seq 10000000 > /dev/null
+#  - seq 10000000 > /dev/null
+  - sh sleep.sh 30
   - pip install pytest coverage 
   - pip install python-coveralls
   - pip install --upgrade coverage
