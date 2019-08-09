@@ -166,7 +166,7 @@ def getResourceInfo(resource):
 	for option in options:
 		if os.path.isfile(option):
 			with open(option) as f:
-				resourceInfo = yaml.load(f)
+				resourceInfo = yaml.safe_load(f)
 			return resourceInfo
 
 	raise RuntimeError("Unable to find resource YAML file for resource: %s" % resource)

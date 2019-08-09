@@ -10,7 +10,7 @@ def loadYAML(yamlFilename):
 	yamlData = None
 	with open(yamlFilename,'r') as f:
 		try:
-			yamlData = yaml.load(f)
+			yamlData = yaml.safe_load(f)
 		except yaml.YAMLError as exc:
 			print(exc)
 			raise
