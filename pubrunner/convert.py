@@ -471,7 +471,7 @@ def writeMarcXMLRecordToBiocFile(record,biocWriter):
 			offset += len(textSource)
 			biocDoc.add_passage(passage)
 
-	biocWriter.writedocument(biocDoc)
+	biocWriter.write_document(biocDoc)
 
 def uimaxmi2bioc(xmiFilename, biocFilename):
 	tree = etree.parse(xmiFilename)
@@ -483,7 +483,7 @@ def uimaxmi2bioc(xmiFilename, biocFilename):
 	contentNode = root.find('{http:///uima/cas.ecore}Sofa')
 	content = contentNode.attrib['sofaString']
 
-	with bioc.iterwrite(biocFilename) as writer:
+	with bioc.BioCXMLDocumentWriter(biocFilename) as writer:
 		biocDoc = bioc.BioCDocument()
 		biocDoc.id = None
 		biocDoc.infons['title'] = documentTitle
@@ -494,11 +494,11 @@ def uimaxmi2bioc(xmiFilename, biocFilename):
 		passage.offset = 0
 		biocDoc.add_passage(passage)
 
-		writer.writedocument(biocDoc)
+		writer.write_document(biocDoc)
 
 
 def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
-	with bioc.iterwrite(biocFilename) as writer:
+	with bioc.BioCXMLDocumentWriter(biocFilename) as writer:
 		for pmDoc in processMedlineFile(pubmedxmlFilename):
 			biocDoc = bioc.BioCDocument()
 			biocDoc.id = pmDoc["pmid"]
@@ -524,13 +524,13 @@ def pubmedxml2bioc(pubmedxmlFilename, biocFilename):
 					offset += len(textSource)
 					biocDoc.add_passage(passage)
 
-			writer.writedocument(biocDoc)
+			writer.write_document(biocDoc)
 
 
 allowedSubsections = {"abbreviations","additional information","analysis","author contributions","authors' contributions","authors’ contributions","background","case report","competing interests","conclusion","conclusions","conflict of interest","conflicts of interest","consent","data analysis","data collection","discussion","ethics statement","funding","introduction","limitations","material and methods","materials","materials and methods","measures","method","methods","participants","patients and methods","pre-publication history","related literature","results","results and discussion","statistical analyses","statistical analysis","statistical methods","statistics","study design","summary","supplementary data","supplementary information","supplementary material","supporting information"}
 def pmcxml2bioc(pmcxmlFilename, biocFilename):
 	try:
-		with bioc.iterwrite(biocFilename) as writer:
+		with bioc.BioCXMLDocumentWriter(biocFilename) as writer:
 			for pmcDoc in processPMCFile(pmcxmlFilename):
 				biocDoc = bioc.BioCDocument()
 				biocDoc.id = pmcDoc["pmid"]
@@ -562,18 +562,18 @@ def pmcxml2bioc(pmcxmlFilename, biocFilename):
 						offset += len(textSource)
 						biocDoc.add_passage(passage)
 
-				writer.writedocument(biocDoc)
+				writer.write_document(biocDoc)
 	except etree.ParseError:
 		raise RuntimeError("Parsing error in PMC xml file: %s" % pmcxmlFilename)	
 
 def mergeBioc(biocFilename, outBiocWriter,idFilter):
-	with bioc.iterparse(biocFilename) as parser:
+	with bioc.BioCXMLDocumentReader(biocFilename) as parser:
 		for biocDoc in parser:
 			if idFilter is None or biocDoc.id in idFilter:
-				outBiocWriter.writedocument(biocDoc)
+				outBiocWriter.write_document(biocDoc)
 
 def bioc2txt(biocFilename, txtHandle,idFilter):
-	with bioc.iterparse(biocFilename) as parser:
+	with bioc.BioCXMLDocumentReader(biocFilename) as parser:
 		for biocDoc in parser:
 			if idFilter is None or biocDoc.id in idFilter:
 				for passage in biocDoc.passages:
@@ -581,7 +581,7 @@ def bioc2txt(biocFilename, txtHandle,idFilter):
 					txtHandle.write("\n\n")
 
 def marcxml2bioc(marcxmlFilename,biocFilename):
-	with open(marcxmlFilename,'rb') as inF, bioc.iterwrite(biocFilename) as writer:
+	with open(marcxmlFilename,'rb') as inF, bioc.BioCXMLDocumentWriter(biocFilename) as writer:
 		def marcxml2bioc_helper(record):
 			writeMarcXMLRecordToBiocFile(record,writer)
 
@@ -604,7 +604,7 @@ def convertFiles(inFiles,inFormat,outFile,outFormat,idFilterfiles=None):
 	outBiocHandle,outTxtHandle = None,None
 
 	if outFormat == 'bioc':
-		outBiocHandle = bioc.BioCEncoderIter(outFile)
+		outBiocHandle = bioc.BioCXMLDocumentWriter(outFile)
 	elif outFormat == 'txt':
 		outTxtHandle = codecs.open(outFile,'w','utf-8')
 
