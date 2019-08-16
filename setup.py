@@ -9,7 +9,7 @@ import sys
 if sys.version_info[0] < 3:
 	raise Exception("PubRunner requires Python 3")
 
-VERSION='0.5.2'
+VERSION='0.5.3'
 
 here = path.abspath(path.dirname(__file__))
 
