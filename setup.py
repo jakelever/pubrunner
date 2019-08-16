@@ -24,6 +24,7 @@ setup(name='pubrunner',
 	version=VERSION,
 	description='A framework to rerun text mining tools on the latest publications',
 	long_description=long_description,
+	long_description_content_type='text/markdown',
 	classifiers=[
 		'Intended Audience :: Developers',
 		'Intended Audience :: Education',
