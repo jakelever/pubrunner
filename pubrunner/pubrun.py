@@ -190,7 +190,7 @@ def downloadPMCOAMetadata(workingDirectory):
 	url = 'ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_file_list.csv'
 	localFile = os.path.join(workingDirectory,'oa_file_list.csv')
 	#localFile = '/projects/bioracle/jake/pubrunner/oa_file_list.csv'
-	pubrunner.download(url,localFile)
+	pubrunner.download(url,workingDirectory)
 
 	pmids = set()
 	pmcidsToLastUpdate = defaultdict(lambda : "")

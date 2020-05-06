@@ -35,14 +35,111 @@ def download(url,out,fileSuffixFilter=None):
 		url = url.replace("ftp://","")
 		hostname = url.split('/')[0]
 		path = "/".join(url.split('/')[1:])
-		with ftputil.FTPHost(hostname, 'anonymous', 'secret') as host:
-			downloadFTP(path,out,host,fileSuffixFilter)
+		#with ftputil.FTPHost(hostname, 'anonymous', 'secret') as host:
+		downloadFTP(path,out,hostname,fileSuffixFilter)
 	elif url.startswith('http'):
 		downloadHTTP(url,out,fileSuffixFilter)
 	else:
 		raise RuntimeError("Unsure how to download file. Expecting URL to start with ftp or http. Got: %s" % url)
 
-def downloadFTP(path,out,host,fileSuffixFilter=None,tries=5):
+def downloadFTP(path,out,hostname,fileSuffixFilter=None,tries=10):
+	assert os.path.isdir(out)
+
+	print('downloadFTP(path=%s,out=%s,hostname=%s)' % (path,out,hostname))
+	host = ftputil.FTPHost(hostname, 'anonymous', 'secret')
+
+	if host.path.isdir(path):
+		root = path
+	else:
+	 	root = None
+	
+	toProcess = [path]
+
+	while len(toProcess) > 0:
+		path = toProcess.pop(0)
+
+		success = False
+		for tryNo in range(tries):
+			try:
+				if host.path.isfile(path):
+					print("FILE", path)
+
+					remoteTimestamp = host.path.getmtime(path)
+					
+					doDownload = True
+					if not checkFileSuffixFilter(path,fileSuffixFilter):
+						#print("SKIPPING FOR SUFFIX")
+						doDownload = False
+
+
+					#print("root", root)
+					#print("path", path)
+					#print("out", out)
+					if root:
+						assert path.startswith(root)
+						withoutRoot = path[len(root):].lstrip('/')
+						outFile = os.path.join(out,withoutRoot)
+						#print("withoutRoot",withoutRoot)
+						#print("outFile",outFile)
+					else:
+						outFile = os.path.join(out,host.path.basename(path))
+					#print("outFile", outFile)
+
+					if os.path.isfile(outFile):
+						localTimestamp = os.path.getmtime(outFile)
+						if not remoteTimestamp > localTimestamp:
+							doDownload = False
+
+					if outFile.endswith('.gz'):
+						outUnzipped = outFile[:-3]
+						if os.path.isfile(outUnzipped):
+							localTimestamp = os.path.getmtime(outUnzipped)
+							if not remoteTimestamp > localTimestamp:
+								doDownload = False
+
+					# Check whatever subdirectory exists, and make it if needed
+					dirName = os.path.dirname(outFile)
+					if not os.path.isdir(dirName):
+						os.makedirs(dirName)
+
+					if doDownload:
+						print("  Downloading %s" % path)
+						print("path=%s, outFile=%s" % (path,outFile))
+						host.download(path,outFile)
+						os.utime(out,(remoteTimestamp,remoteTimestamp))
+					else:
+						print("  Skipping %s" % path)
+				elif host.path.isdir(path):
+					print("DIR", path)
+					children = [ host.path.join(path,child) for child in host.listdir(path) ]
+
+					toProcess += children
+				else:
+					raise RuntimeError("Path (%s) is not a file or directory" % path)
+				success = True
+				break
+			except ftputil.error.FTPOSError as e:
+				errinfo = str(e.errno) + ' ' + str(e.strerror)
+				print("Try %d for %s/%s : Received FTPOSError(%s)" % (tryNo+1,hostname,path,errinfo))
+				time.sleep((tryNo+1)*2)
+				if not host.closed:
+					host.close()
+				host = ftputil.FTPHost(hostname, 'anonymous', 'secret')
+
+				toProcess.insert(0, path)
+
+
+
+		if not success:
+			raise RuntimeError("Unable to download %s" % path)
+
+	if not host.closed:
+		host.close()
+
+def downloadFTP_old(path,out,hostname,fileSuffixFilter=None,tries=10):
+	host = ftputil.FTPHost(hostname, 'anonymous', 'secret')
+
+	success = False
 	for tryNo in range(tries):
 		try:
 			if host.path.isfile(path):
@@ -74,41 +171,64 @@ def downloadFTP(path,out,host,fileSuffixFilter=None,tries=5):
 				newOut = os.path.join(out,basename)
 				if not os.path.isdir(newOut):
 					os.makedirs(newOut)
-				for child in host.listdir(path):
+				children = list(host.listdir(path))
+
+				# Job done with this connection (to get file listing - on to the next host)
+				host.close()
+				
+				for child in children:
 					srcFilename = host.path.join(path,child)
 					dstFilename = os.path.join(newOut,child)
-					downloadFTP(srcFilename,dstFilename,host,fileSuffixFilter)
+					downloadFTP_old(srcFilename,dstFilename,hostname,fileSuffixFilter=fileSuffixFilter)
 			else:
 				raise RuntimeError("Path (%s) is not a file or directory" % path) 
 
+			success = True
 			break
 		except ftputil.error.FTPOSError as e:
 			errinfo = str(e.errno) + ' ' + str(e.strerror)
-			print("Try %d for %s : Received FTPOSError(%s)" % (tryNo+1,path,errinfo))
-			time.sleep(1)
+			print("Try %d for %s/%s : Received FTPOSError(%s)" % (tryNo+1,hostname,path,errinfo))
+			time.sleep((tryNo+1)*2)
+			if not host.closed:
+				host.close()
+			host = ftputil.FTPHost(hostname, 'anonymous', 'secret')
+
+	if not host.closed:
+		host.close()
+
+	if not success:
+		raise RuntimeError("Unable to download %s" % path)
 
 def downloadHTTP(url,out,fileSuffixFilter=None):
+	print("downloadHTTP(url=%s, out=%s)" % (url, out))
+
+	if os.path.isdir(out):
+		basename = url.split('/')[-1]
+		outFile = os.path.join(out, basename)
+	else:
+		outFile = out
+
 	if not checkFileSuffixFilter(url,fileSuffixFilter):
 		return
 
-	fileAlreadyExists = os.path.isfile(out)
+	fileAlreadyExists = os.path.isfile(outFile)
 
 	if fileAlreadyExists:
-		timestamp = os.path.getmtime(out)
-		beforeHash = pubrunner.calcSHA256(out)
-		os.unlink(out)
+		timestamp = os.path.getmtime(outFile)
+		beforeHash = pubrunner.calcSHA256(outFile)
+		os.unlink(outFile)
 
-	wget.download(url,out,bar=None)
+	wget.download(url,outFile,bar=None)
 	if fileAlreadyExists:
-		afterHash = pubrunner.calcSHA256(out)
+		afterHash = pubrunner.calcSHA256(outFile)
 		if beforeHash == afterHash: # File hasn't changed so move the modified date back
-			os.utime(out,(timestamp,timestamp))
+			os.utime(outFile,(timestamp,timestamp))
 
 def downloadZenodo(recordNumber,outputDirectory):
+	print("downloadZenodo(recordNumber=%s, outputDirectory=%s)" % (str(recordNumber), outputDirectory))
 	assert isinstance(recordNumber,int)
 
-	if not os.path.isdir(outputDirectory):
-		os.makedirs(outputDirectory)
+	assert os.path.isdir(outputDirectory)
 
 	ZENODO_URL = 'https://zenodo.org'
 	
@@ -183,6 +303,7 @@ def getResource(resource):
 	resourceDir = os.path.expanduser(globalSettings["storage"]["resources"])
 	thisResourceDir = os.path.join(resourceDir,resource)
 
+
 	resourceInfo = getResourceInfo(resource)
 	#print(json.dumps(resourceInfo,indent=2))
 
@@ -202,6 +323,10 @@ def getResource(resource):
 		return thisResourceDir
 	elif resourceInfo['type'] == 'zenodo':
 		assert isinstance(resourceInfo['record'], int), 'The Zenodo record must be an integer'
+
+		if not os.path.isdir(thisResourceDir):
+			print("  Creating directory...")
+			os.makedirs(thisResourceDir)
 
 		print("  Starting Zenodo download...")
 		downloadZenodo(resourceInfo['record'],thisResourceDir)
@@ -225,13 +350,13 @@ def getResource(resource):
 
 		print("  Starting download...")
 		for url in urls:
-			basename = url.split('/')[-1]
 			assert isinstance(url,six.string_types), 'Each URL for the dir resource must be a string'
-			download(url,os.path.join(thisResourceDir,basename),fileSuffixFilter)
+			download(url,thisResourceDir,fileSuffixFilter)
 
 		if 'unzip' in resourceInfo and resourceInfo['unzip'] == True:
 			print("  Unzipping archives...")
 			for filename in os.listdir(thisResourceDir):
+				print("FOUND", filename)
 				if filename.endswith('.tar.gz') or filename.endswith('.tgz'):
 					tar = tarfile.open(os.path.join(thisResourceDir,filename), "r:gz")
 					tar.extractall(thisResourceDir)
