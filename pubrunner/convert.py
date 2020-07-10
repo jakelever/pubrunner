@@ -574,7 +574,8 @@ def mergeBioc(biocFilename, outBiocWriter,idFilter):
 				outBiocWriter.write_document(biocDoc)
 
 def bioc2txt(biocFilename, txtHandle,idFilter):
-	with bioc.BioCXMLDocumentReader(biocFilename) as parser:
+	with open(biocFilename,'rb') as f:
+		parser = bioc.BioCXMLDocumentReader(f)
 		for biocDoc in parser:
 			if idFilter is None or biocDoc.id in idFilter:
 				for passage in biocDoc.passages:
