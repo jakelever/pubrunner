@@ -567,7 +567,8 @@ def pmcxml2bioc(pmcxmlFilename, biocFilename):
 		raise RuntimeError("Parsing error in PMC xml file: %s" % pmcxmlFilename)	
 
 def mergeBioc(biocFilename, outBiocWriter,idFilter):
-	with bioc.BioCXMLDocumentReader(biocFilename) as parser:
+	with open(biocFilename,'rb') as f:
+		parser = bioc.BioCXMLDocumentReader(f)
 		for biocDoc in parser:
 			if idFilter is None or biocDoc.id in idFilter:
 				outBiocWriter.write_document(biocDoc)
