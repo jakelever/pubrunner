@@ -24,7 +24,7 @@ def launchSnakemake(snakeFilePath,useCluster=True,parameters={}):
 		else:
 			raise RuntimeError("Cluster must either have drmaa = true or provide options (e.g. using qsub)")
 
-	makecommand = "snakemake %s --nolock -s %s" % (clusterFlags,snakeFilePath)
+	makecommand = "snakemake %s --cores 1 --nolock -s %s" % (clusterFlags,snakeFilePath)
 
 	env = os.environ.copy()
 	env.update(parameters)

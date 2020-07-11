@@ -9,5 +9,5 @@ resources:
          pmids: 25155290
          rename: PUBMED
 run:
-   - python CountWords.py -i {IN:PUBMED} -o {OUT:OUTPUTDIR}
+   - python CountWords.py -i {IN:PUBMED/%.xml} -o {OUT:OUTPUTDIR/%.tsv}
 output: OUTPUTDIR
