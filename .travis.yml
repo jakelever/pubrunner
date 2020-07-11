@@ -7,7 +7,7 @@ python:
   - "3.8"
 install:
   - pip install pytest coverage 
-  - pip install python-coveralls
+  - pip install coveralls
   - pip install --upgrade coverage
   - pip install .
 script:
